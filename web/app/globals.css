@@ -1,0 +1,284 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Nnneva design tokens
+
+   Adapted from the "Family" system (refero.design). The rules that matter:
+     - warm parchment canvas, never pure white as the page background
+     - flat fills only; no gradients anywhere
+     - card definition comes from a 1px inset hairline, not a drop shadow
+     - nothing heavier than rgba(0,0,0,0.04) for standard elevation
+     - display face at 44-68px; Inter never goes above 23px
+
+   The palette's accent hues carry the triage bands, so band colour is part of
+   the design system rather than bolted on: grass = routine, honey/ember =
+   urgent, alert = emergency.
+--------------------------------------------------------------------------- */
+
+@theme {
+  /* Neutrals */
+  --color-cream: #fbfaf9;
+  --color-stone: #f2f0ed;
+  --color-sand: #f6f4ef;
+  --color-ink: #121212;
+  --color-charcoal: #343433;
+  --color-brown: #474645;
+  --color-muted: #7e7e7d;
+  --color-rule: #e5d5c3;
+
+  /* Accents */
+  --color-link: #0086fc;
+  --color-sky: #64c6ff;
+  --color-altblue: #00b2ff;
+  --color-ember: #ff3e00;
+  --color-grass: #00c978;
+  --color-mint: #00ca48;
+  --color-sun: #ffcd6c;
+  --color-gold: #d48f00;
+  --color-honey: #ffbb26;
+  --color-coral: #ff58ae;
+  --color-plum: #9f4fff;
+  --color-alert: #ff2b3a;
+
+  /* Type scale — 16px base, minor third 1.2. Display sizes go fluid on mobile. */
+  --text-display: clamp(40px, 7.5vw, 68px);
+  --text-display--line-height: 1.1;
+  --text-display--letter-spacing: -0.031em;
+  --text-display--font-weight: 500;
+
+  --text-headline: clamp(30px, 4.5vw, 44px);
+  --text-headline--line-height: 1.2;
+  --text-headline--letter-spacing: -0.02em;
+  --text-headline--font-weight: 400;
+
+  --text-heading: 23px;
+  --text-heading--line-height: 1.09;
+  --text-heading--letter-spacing: -0.019em;
+  --text-heading--font-weight: 500;
+
+  --text-subheading: 19px;
+  --text-subheading--line-height: 1.42;
+  --text-subheading--letter-spacing: -0.009em;
+  --text-subheading--font-weight: 400;
+
+  --text-body: 17px;
+  --text-body--line-height: 1.53;
+  --text-body--letter-spacing: -0.013em;
+  --text-body--font-weight: 400;
+
+  --text-caption: 15px;
+  --text-caption--line-height: 1.47;
+  --text-caption--font-weight: 600;
+
+  --text-micro: 12px;
+  --text-micro--line-height: 1.4;
+  --text-micro--letter-spacing: 0.06em;
+  --text-micro--font-weight: 600;
+
+  /* Radii */
+  --radius-xs: 2px;
+  --radius-badge: 6px;
+  --radius-card: 10px;
+  --radius-btn: 32px;
+  --radius-icon: 40px;
+  --radius-illus: 72px;
+
+  /* Elevation — hairlines first, shadows barely at all */
+  --shadow-hair: 0 0 0 1px rgba(0, 0, 0, 0.04);
+  --shadow-soft: 0 1px 6px rgba(0, 0, 0, 0.04), 0 0 24px rgba(0, 0, 0, 0.05);
+  --shadow-lift: 0 0 24px rgba(0, 0, 0, 0.15);
+
+  --container-page: 1200px;
+}
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-archivo), var(--font-inter), ui-sans-serif, sans-serif;
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+
+  body {
+    background-color: var(--color-cream);
+    color: var(--color-brown);
+    font-family: var(--font-sans);
+    font-size: 17px;
+    line-height: 1.53;
+    letter-spacing: -0.013em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3 {
+    color: var(--color-charcoal);
+  }
+
+  ::selection {
+    background-color: var(--color-sun);
+    color: var(--color-ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-link);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* The one card recipe: white fill on the cream canvas, defined by an inset
+     hairline in stone. Deliberately no drop shadow. */
+  .card {
+    background-color: #ffffff;
+    border-radius: var(--radius-card);
+    box-shadow: inset 0 0 0 1px var(--color-stone);
+  }
+
+  /* Grouped/secondary surface, for when cards sit inside cards. */
+  .card-stone {
+    background-color: var(--color-stone);
+    border-radius: var(--radius-card);
+  }
+
+  /* The dark feature card, with its asymmetric left radius. */
+  .card-dark {
+    background-color: #000000;
+    color: var(--color-cream);
+    border-radius: 24px var(--radius-card) var(--radius-card) 24px;
+    box-shadow: var(--shadow-lift);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: var(--radius-btn);
+    padding: 10px 20px;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.47;
+    letter-spacing: -0.009em;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 120ms ease, color 120ms ease, opacity 120ms ease;
+  }
+
+  .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* Primary CTA — the dark pill. */
+  .btn-ink {
+    background-color: var(--color-ink);
+    color: #ffffff;
+  }
+
+  .btn-ink:hover:not(:disabled) {
+    background-color: var(--color-charcoal);
+  }
+
+  /* Secondary — the sand pill. */
+  .btn-sand {
+    background-color: var(--color-sand);
+    color: var(--color-ink);
+    box-shadow: inset 0 0 0 1px var(--color-stone);
+  }
+
+  .btn-sand:hover:not(:disabled) {
+    background-color: var(--color-stone);
+  }
+
+  .btn-ghost {
+    background-color: transparent;
+    color: var(--color-brown);
+  }
+
+  .btn-ghost:hover:not(:disabled) {
+    background-color: var(--color-stone);
+  }
+
+  /* Status pill — fully round, tinted fill, no border. */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 9999px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.006em;
+    white-space: nowrap;
+  }
+
+  /* Small badge for metadata. */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border-radius: var(--radius-badge);
+    padding: 3px 7px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  .eyebrow {
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  /* Inline demo link — ember, underlined, never a filled button. */
+  .link-ember {
+    color: var(--color-ember);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    padding: 4px 0;
+  }
+}
+
+@layer utilities {
+  /* The hairline that stands in for a border everywhere in this system. */
+  .hairline {
+    box-shadow: inset 0 0 0 1px var(--color-stone);
+  }
+
+  .hairline-rule {
+    box-shadow: inset 0 0 0 1px var(--color-rule);
+  }
+
+  .font-display {
+    font-family: var(--font-display);
+  }
+}
+
+@keyframes nnneva-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-rise {
+  animation: nnneva-rise 260ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise {
+    animation: none;
+  }
+}
