@@ -16,35 +16,47 @@ npm run dev     # http://localhost:3000
 | `npm test`         | The red-flag triage suite and the inbound-path suite |
 | `npm run lint`     | ESLint                                             |
 
-## The three routes
+## Routes
 
-| Route      | Surface                                                                  |
-| ---------- | ------------------------------------------------------------------------ |
-| `/`        | Landing page — the pitch, the safety architecture, the positioning        |
-| `/console` | Surface 2 — the health worker console: ranked queue, reasoning, evidence, confirmation, audit log |
-| `/chat`    | Surface 3 — the mother's conversation, with the triage trace beside it    |
+The console shell (sidebar, overview, queue, cohort, mothers, questions, audit)
+lives under the `app/(console)` route group. The mother's conversation sits
+outside it, with its own layout, because she is not a user of the health
+worker's product and should never see its chrome.
 
-**Open `/console` first.** The whole argument of the product is that a process
-ran at 06:00 with nobody watching and reduced 40 mothers to 6. A judge who sees
-the chat first files this as a pregnancy chatbot in the first eight seconds.
+| Route           | Surface                                                                   |
+| --------------- | ------------------------------------------------------------------------- |
+| `/`             | **Overview** — the sweep result: two numbers, the ranked queue, the cohort ring |
+| `/queue`        | Surface 2 — the ranked queue with reasoning, evidence and the confirmation gate |
+| `/cohort`       | Cohort intelligence — the ring, ANC progression, the consent position      |
+| `/mothers`      | The directory, ordered by who needs reading first                          |
+| `/mothers/[id]` | Mother profile — the pregnancy timeline, record, consent, saved questions  |
+| `/questions`    | The question bank — everything Nnneva declined to answer                   |
+| `/audit`        | Every escalation, block and confirmed action                               |
+| `/chat`         | Surface 3 — the mother's conversation, with the triage trace beside it     |
+| `/about`        | The pitch and the architecture, for a judge who wants it in prose          |
+
+**`/` opens on the sweep, not the chat.** The whole argument of the product is
+that a process ran at 06:00 with nobody watching and reduced 40 mothers to 6. A
+judge who sees a chat window first files this as a pregnancy chatbot in the
+first eight seconds, and everything after that is climbing out of that hole.
 
 ## Demonstrating the live escalation
 
-Open `/chat` and `/console` in two browser windows, side by side. State is held
+Open `/chat` and `/queue` in two browser windows, side by side. State is held
 in a module-level store backed by `localStorage` and synced across tabs with a
 `BroadcastChannel`, so:
 
 1. In `/chat`, click the **Urgent** or **Emergency** prompt chip.
 2. Deterministic triage runs, assigns a band, and the trace appears on the right.
 3. Fixed escalation text — assembled from the corpus, not generated — is sent.
-4. The queue item appears in `/console` in the same moment, ranked to the top.
+4. The queue item appears in `/queue` in the same moment, ranked to the top.
 
 The **Trip the guardrail** button on `/chat` runs a model response that names a
 condition, so the Layer 3 output guardrail can be shown catching it on camera.
 The block, the matched span, and the rewrite instruction land in the audit log
-under the **Audit log** tab in the console.
+at `/audit`.
 
-**Reset demo state** in the console header returns everything to the seed.
+**Reset demo** in the queue header returns everything to the seed.
 
 ## How the safety layers map to the code
 
@@ -77,16 +89,26 @@ takes.
 
 ## Design
 
-Tokens live in `app/globals.css` under `@theme`, adapted from the Family design
-system. The rules worth not breaking:
+A midnight-teal command console for the health worker, and a pearl surface for
+the mother. Tokens live in `app/globals.css` under `@theme`. The rules worth not
+breaking:
 
-- Warm parchment canvas (`--color-cream`), never pure white as the page background.
-- Cards are defined by a **1px inset hairline**, not a drop shadow. Nothing
-  heavier than `rgba(0,0,0,0.04)` for standard elevation.
-- Flat fills only. No gradients.
-- Display face at 44–68px; Inter never goes above 23px.
-- Band colour comes from the palette: `alert` = emergency, `honey` = urgent,
-  `mint` = routine.
+- **Two canvases, never mixed on one screen.** The console is midnight
+  (`--color-canvas`); the mother's conversation is pearl. The inversion is
+  load-bearing — it is the fastest way to tell the two users apart.
+- **Elevation is tonal, not shadowed.** A card is a lighter teal than its canvas
+  plus a 1px inset hairline. Only dialogs get a real shadow.
+- **Colour is meaning.** Mint is on track, amber is attention, red is urgent.
+  Nothing is red for decoration: if it is red, a mother is waiting.
+- **Geometry:** pill buttons, 16px inputs, 24px cards, 30px for the one elevated
+  card per screen, 8px icon containers.
+- **Type:** Manrope throughout, 500 for interface text and 600 for headings.
+  Display sizes are fluid so 390px never overflows.
+- **Motion is restrained.** The agent indicator breathes on a 3.4s cycle; cards
+  rise 8px on entry. Everything is disabled under `prefers-reduced-motion`.
+
+Band colour is defined once, in `components/ui.tsx` (`BAND_STYLE`,
+`STATE_STYLE`), rather than spelled out at each call site.
 
 ## Clinical sources
 
