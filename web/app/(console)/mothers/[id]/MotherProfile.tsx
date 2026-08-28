@@ -130,7 +130,7 @@ export default function MotherProfile({ id }: { id: string }) {
               <p className="mt-5 text-small leading-relaxed text-text-2">
                 Next is contact {pending_.index}, targeted at week {pending_.targetWeek}.{" "}
                 {pending_.status === "missed" ? (
-                  <span className="text-red">
+                  <span className="text-red-text">
                     Its window has already closed
                     {mother.gestationalWeek > pending_.targetWeek
                       ? ` — she is ${mother.gestationalWeek - pending_.targetWeek} ${
@@ -183,7 +183,7 @@ export default function MotherProfile({ id }: { id: string }) {
               </>
             ) : (
               <>
-                <p className="mt-4 text-lead text-red">Consent not given</p>
+                <p className="mt-4 text-lead text-red-text">Consent not given</p>
                 <p className="mt-3 text-small leading-relaxed text-text-2">
                   She is enrolled and counted, but excluded from every sweep. No agent reads her
                   history and no queue item can be raised about her.
@@ -240,7 +240,7 @@ export default function MotherProfile({ id }: { id: string }) {
 const EVENT_STYLE: Record<TimelineEvent["kind"], { dot: string; ring: string; label: string }> = {
   enrolled: { dot: "bg-text-3", ring: "bg-surface-3", label: "text-text-2" },
   contact: { dot: "bg-mint", ring: "bg-mint/20", label: "text-mint" },
-  missed: { dot: "bg-red", ring: "bg-red/20", label: "text-red" },
+  missed: { dot: "bg-red", ring: "bg-red/20", label: "text-red-text" },
   question: { dot: "bg-aqua", ring: "bg-aqua/20", label: "text-aqua" },
   flag: { dot: "bg-amber", ring: "bg-amber/20", label: "text-amber" },
   message: { dot: "bg-text-2", ring: "bg-surface-3", label: "text-text-2" },

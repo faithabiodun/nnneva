@@ -229,7 +229,7 @@ function SecondaryLink({
       }`}
     >
       <span className="text-small font-semibold">{label}</span>
-      <span className="text-micro font-medium tracking-normal text-text-3">{note}</span>
+      <span className="text-micro font-medium tracking-normal text-text-2">{note}</span>
     </Link>
   );
 }

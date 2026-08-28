@@ -21,7 +21,7 @@ export const BAND_STYLE: Record<
     pill: "bg-red text-[#2a0705]",
     rail: "bg-red",
     dot: "bg-red",
-    text: "text-red",
+    text: "text-red-text",
   },
   urgent: {
     label: "Urgent",
@@ -32,7 +32,7 @@ export const BAND_STYLE: Record<
   },
   routine: {
     label: "Routine",
-    pill: "bg-mint/15 text-mint",
+    pill: "bg-mint-wash text-mint",
     rail: "bg-mint",
     dot: "bg-mint",
     text: "text-mint",
@@ -42,7 +42,7 @@ export const BAND_STYLE: Record<
 export const STATE_STYLE: Record<CohortState, { label: string; dot: string; text: string; fill: string }> = {
   onTrack: { label: "On track", dot: "bg-mint", text: "text-mint", fill: "bg-mint" },
   attention: { label: "Needs attention", dot: "bg-amber", text: "text-amber", fill: "bg-amber" },
-  urgent: { label: "Urgent review", dot: "bg-red", text: "text-red", fill: "bg-red" },
+  urgent: { label: "Urgent review", dot: "bg-red", text: "text-red-text", fill: "bg-red" },
   excluded: { label: "Not consented", dot: "bg-text-3", text: "text-text-3", fill: "bg-text-3" },
 };
 
@@ -134,7 +134,7 @@ export function Stat({
     default: "text-text",
     good: "text-mint",
     attention: "text-amber",
-    urgent: "text-red",
+    urgent: "text-red-text",
   }[tone];
 
   return (

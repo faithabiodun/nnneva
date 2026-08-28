@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!--
+    The Nnneva mark as a favicon.
+
+    Same open protective arc around a held centre as the wordmark, but drawn
+    heavier: at 16px a 2.1px stroke scaled down disappears entirely, so the arc
+    is thickened and the centre enlarged until the silhouette still reads at
+    tab size. Deep-teal ground rather than transparency, so the mark holds its
+    contrast against light and dark browser chrome alike.
+  -->
+  <rect width="32" height="32" rx="7" fill="#063B3A"/>
+  <path d="M25 16a9 9 0 1 0-4.9 8" fill="none" stroke="#19C7B5" stroke-width="3.4" stroke-linecap="round"/>
+  <circle cx="16" cy="16" r="4.1" fill="#19C7B5"/>
+</svg>

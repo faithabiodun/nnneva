@@ -65,7 +65,7 @@ export default function QuestionsPage() {
                         of 8 · {mother.village}
                       </p>
                     </div>
-                    <span className="pill bg-aqua/15 text-aqua">
+                    <span className="pill bg-aqua-wash text-aqua">
                       <IconQuestion className="size-3.5" />
                       {questions.length} saved
                     </span>

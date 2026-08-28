@@ -38,7 +38,7 @@ export default function OverviewPage() {
       {/* ---- Hero --------------------------------------------------------- */}
       <section>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <span className="pill bg-mint/15 text-mint">
+          <span className="pill bg-mint-wash text-mint">
             <span className="size-1.5 rounded-full bg-mint" aria-hidden />
             Sweep complete
           </span>
@@ -57,8 +57,18 @@ export default function OverviewPage() {
         </h1>
 
         <p className="mt-7 max-w-2xl text-lead text-text-2">
-          Nnneva completed its morning cohort sweep and identified the mothers requiring human
-          attention. Every one carries a plain-language reason and the evidence behind it.
+          {open.length > 0 ? (
+            <>
+              Nnneva completed its morning cohort sweep and identified the mothers requiring human
+              attention. Every one carries a plain-language reason and the evidence behind it.
+            </>
+          ) : (
+            <>
+              Nnneva completed its morning cohort sweep and found nobody who needs you today. It
+              keeps watching — anything a mother reports before tomorrow&rsquo;s sweep arrives here
+              immediately.
+            </>
+          )}
         </p>
       </section>
 

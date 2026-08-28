@@ -6,9 +6,9 @@ import { useDemo } from "@/lib/store";
 import type { AuditEntry } from "@/lib/types";
 
 const KIND_STYLE: Record<AuditEntry["kind"], { pill: string; label: string; rail: string }> = {
-  escalation: { pill: "bg-amber/15 text-amber", label: "Escalation", rail: "bg-amber" },
-  blocked: { pill: "bg-red/15 text-red", label: "Response blocked", rail: "bg-red" },
-  action: { pill: "bg-mint/15 text-mint", label: "Confirmed action", rail: "bg-mint" },
+  escalation: { pill: "bg-amber-wash text-amber", label: "Escalation", rail: "bg-amber" },
+  blocked: { pill: "bg-red text-[#2a0705]", label: "Response blocked", rail: "bg-red" },
+  action: { pill: "bg-mint-wash text-mint", label: "Confirmed action", rail: "bg-mint" },
   sweep: { pill: "bg-surface-3 text-text-2", label: "Cohort sweep", rail: "bg-teal" },
 };
 
@@ -49,7 +49,7 @@ export default function AuditPage() {
       <div className="mt-8 grid gap-px overflow-hidden rounded-card bg-line sm:grid-cols-3">
         {[
           ["Escalations", escalations, "text-amber"],
-          ["Responses blocked", blocked, "text-red"],
+          ["Responses blocked", blocked, "text-red-text"],
           ["Actions confirmed by a human", confirmed, "text-mint"],
         ].map(([label, value, tone]) => (
           <div key={label as string} className="bg-surface p-6">

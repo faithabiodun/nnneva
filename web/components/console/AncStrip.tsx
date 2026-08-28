@@ -11,7 +11,7 @@ import type { AncContact } from "@/lib/types";
 
 const STATUS_STYLE: Record<AncContact["status"], { bar: string; label: string }> = {
   completed: { bar: "bg-mint", label: "text-mint" },
-  missed: { bar: "bg-red", label: "text-red" },
+  missed: { bar: "bg-red", label: "text-red-text" },
   due: { bar: "bg-amber", label: "text-amber" },
   upcoming: { bar: "bg-surface-3", label: "text-text-3" },
 };

@@ -103,7 +103,7 @@ export default function ChatPage() {
 
           {herQuestions.length > 0 && (
             <div className="rounded-card bg-white px-4 py-3.5 shadow-[var(--shadow-pearl)]">
-              <p className="flex items-center gap-2 text-caption font-semibold text-teal">
+              <p className="flex items-center gap-2 text-caption font-semibold text-good-deep">
                 <IconQuestion className="size-3.5" />
                 {herQuestions.length}{" "}
                 {herQuestions.length === 1 ? "question is" : "questions are"} ready for your health
@@ -255,7 +255,7 @@ function Bubble({ message }: { message: ChatMessage }) {
       <div className="flex justify-end">
         <div className="max-w-[85%] rounded-[20px_20px_6px_20px] bg-ink px-4 py-3 text-[15px] leading-relaxed font-medium text-pearl">
           {message.text}
-          <p className="mt-1.5 text-caption text-pearl/50">{formatTime(message.at)}</p>
+          <p className="mt-1.5 text-caption text-pearl/70">{formatTime(message.at)}</p>
         </div>
       </div>
     );
@@ -298,14 +298,14 @@ function Bubble({ message }: { message: ChatMessage }) {
         <p className="text-[15px] leading-relaxed font-medium text-ink">{message.text}</p>
 
         {message.fixed && (
-          <p className="mt-2.5 flex items-center gap-1.5 text-caption font-semibold text-teal">
+          <p className="mt-2.5 flex items-center gap-1.5 text-caption font-semibold text-good-deep">
             <IconTriage className="size-3.5" />
             Assembled from reviewed guidance — not generated
           </p>
         )}
 
         {message.savedQuestion && (
-          <p className="mt-2.5 flex items-center gap-1.5 text-caption font-semibold text-teal">
+          <p className="mt-2.5 flex items-center gap-1.5 text-caption font-semibold text-good-deep">
             <IconCheck className="size-3.5" />
             Saved as a question for your next contact
           </p>
@@ -332,7 +332,7 @@ function Bubble({ message }: { message: ChatMessage }) {
 /* -------------------------------------------------------------------------- */
 
 const OUTCOME_STYLE = {
-  matched: "bg-red/15 text-red",
+  matched: "bg-red text-[#2a0705]",
   "out-of-window": "bg-surface-2 text-text-3",
   suppressed: "bg-surface-2 text-text-3",
   "no-match": "bg-surface-2 text-text-3",
@@ -363,7 +363,7 @@ function TriagePanel({ result, week }: { result: TriageResult | null; week: numb
             <span
               className={`pill ${
                 result.band === "routine"
-                  ? "bg-mint/15 text-mint"
+                  ? "bg-mint-wash text-mint"
                   : result.band === "urgent"
                     ? "bg-amber text-[#3a2600]"
                     : "bg-red text-[#2a0705]"

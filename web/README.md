@@ -100,6 +100,14 @@ breaking:
   plus a 1px inset hairline. Only dialogs get a real shadow.
 - **Colour is meaning.** Mint is on track, amber is attention, red is urgent.
   Nothing is red for decoration: if it is red, a mother is waiting.
+- **Two red tokens.** `--color-red` carries every red *fill* — rail, dot, ring
+  segment, alarm chip — where WCAG asks 3:1 because it is a graphic.
+  `--color-red-text` is the lightened value used wherever red is a *word*, which
+  needs 4.5:1. One value cannot do both jobs on this canvas.
+- **Chip grounds are opaque** (`--color-mint-wash` and friends), composited over
+  midnight rather than over whatever card they land on. An `accent/15` tint
+  inherits its parent, so the same chip measured differently on a card and
+  inside a selected one.
 - **Geometry:** pill buttons, 16px inputs, 24px cards, 30px for the one elevated
   card per screen, 8px icon containers.
 - **Type:** Manrope throughout, 500 for interface text and 600 for headings.
@@ -109,6 +117,11 @@ breaking:
 
 Band colour is defined once, in `components/ui.tsx` (`BAND_STYLE`,
 `STATE_STYLE`), rather than spelled out at each call site.
+
+Every text/background pair on every route is at or above WCAG AA — verified
+against the rendered DOM (compositing real ancestor backgrounds, and Tailwind's
+`oklab()` alpha output) rather than against the token table, because several
+failures only appeared once a chip landed inside a selected card.
 
 ## Clinical sources
 

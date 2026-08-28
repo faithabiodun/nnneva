@@ -64,9 +64,9 @@ export default function QueueCard({
         <span className="chip bg-surface-2 text-text-3">
           {item.source === "sweep" ? "From the 06:00 sweep" : "Raised by triage"}
         </span>
-        {isNew && <span className="chip bg-red/15 text-red">Just now</span>}
+        {isNew && <span className="chip bg-red text-[#2a0705]">Just now</span>}
         {item.status !== "open" && (
-          <span className="chip bg-mint/15 text-mint">
+          <span className="chip bg-mint-wash text-mint">
             <IconCheck className="size-3" />
             {item.status === "contacted" ? "Contacted" : "Flagged for review"}
           </span>
@@ -90,7 +90,7 @@ export default function QueueCard({
 
   const shell = `group relative block w-full overflow-hidden rounded-card p-5 pl-6 text-left transition-colors ${
     selected
-      ? "bg-surface-3 shadow-[inset_0_0_0_1px_var(--color-aqua)]"
+      ? "bg-surface-2 shadow-[inset_0_0_0_1px_var(--color-aqua)]"
       : "bg-surface hairline hover:bg-surface-2"
   }`;
 

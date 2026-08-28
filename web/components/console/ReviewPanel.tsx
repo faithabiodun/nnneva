@@ -104,7 +104,7 @@ export default function ReviewPanel({
           <div className="flex flex-wrap items-center gap-2">
             <BandPill band={item.band} />
             {item.status !== "open" && (
-              <span className="pill bg-mint/15 text-mint">
+              <span className="pill bg-mint-wash text-mint">
                 <IconCheck className="size-3.5" />
                 {item.status === "contacted" ? "Contacted" : "Flagged"}
               </span>
@@ -206,7 +206,7 @@ export default function ReviewPanel({
             {mother.consent ? (
               <span className="text-mint">Given</span>
             ) : (
-              <span className="text-red">Not given — excluded</span>
+              <span className="text-red-text">Not given — excluded</span>
             )}
           </Field>
         </dl>

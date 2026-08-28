@@ -41,12 +41,12 @@
 
   --color-text: #e9f6f3;
   --color-text-2: #a8c3bf;
-  --color-text-3: #6f918d;
+  --color-text-3: #96afac;
 
   /* ---- Light canvas: the mother's side ---------------------------------- */
   --color-ink: #062e2d;
   --color-ink-2: #3d5f5c;
-  --color-ink-3: #7d9a97;
+  --color-ink-3: #607674;
   --color-pearl-line: #dbeae6;
 
   /* ---- Semantic ---------------------------------------------------------
@@ -57,6 +57,20 @@
   --color-red-deep: #9c1f16;
   --color-good: #7be3c8;
   --color-good-deep: #0a6a56;
+
+  /* Red as TEXT, lightened until it clears 4.5:1 on a card and in a well.
+     --color-red still carries every red FILL — a rail, a dot, a ring segment,
+     a solid alarm chip — where 3:1 is the bar because it is a graphic, not a
+     word. Two tokens because one value cannot do both jobs on this canvas. */
+  --color-red-text: #ff877e;
+
+  /* Chip grounds, composited over midnight rather than over whatever card the
+     chip lands on. A `bg-mint/15` tint inherits its parent, so the same chip
+     was legible on a card and failing inside a selected one; an opaque wash
+     makes the chip look and measure the same everywhere. */
+  --color-mint-wash: #174743;
+  --color-amber-wash: #2b402e;
+  --color-aqua-wash: #084341;
 
   /* ---- Type -------------------------------------------------------------
      Manrope throughout. Large sizes go fluid so 390px never overflows. */
