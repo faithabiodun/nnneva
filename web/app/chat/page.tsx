@@ -80,9 +80,9 @@ export default function ChatPage() {
           <div className="flex items-center gap-3">
             <MarkLife className="size-7 shrink-0 text-teal" />
             <div className="min-w-0">
-              <p className="text-[17px] leading-tight font-semibold tracking-[-0.02em] text-ink">
+              <h1 className="text-[17px] leading-tight font-semibold tracking-[-0.02em] text-ink">
                 Nnneva
-              </p>
+              </h1>
               <p className="text-caption text-ink-3">Your maternal care companion</p>
             </div>
             <span className="ml-auto shrink-0 rounded-pill bg-softmint px-3 py-1.5 text-caption font-semibold text-good-deep">

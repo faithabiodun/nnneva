@@ -46,6 +46,7 @@ export default function MothersPage() {
       <SectionHead
         eyebrow="Enrolled cohort"
         title="Mothers"
+        level={1}
         note="Ordered by who needs reading first, not alphabetically: urgent, then awaiting follow-up, then whoever has been silent longest."
       />
 

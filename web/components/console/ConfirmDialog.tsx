@@ -25,15 +25,73 @@ export default function ConfirmDialog({
   onCancel: () => void;
 }) {
   const confirmRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
+  // Held in a ref so the effect below can run once. The parent passes a fresh
+  // arrow function on every render, and re-running the effect would drag focus
+  // back to Confirm each time the queue changed underneath the dialog.
+  const cancelRef = useRef(onCancel);
   useEffect(() => {
-    confirmRef.current?.focus();
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onCancel();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    cancelRef.current = onCancel;
   }, [onCancel]);
+
+  /**
+   * Focus is trapped here, not merely moved here.
+   *
+   * Without the trap, Tab walks straight out of the dialog and into the console
+   * behind the overlay — which on this particular dialog means a keyboard user
+   * can leave a pending mother-facing action, activate something they cannot
+   * see, and never learn what they released. The confirmation gate is the whole
+   * safety claim, so it has to hold for the keyboard too.
+   *
+   * On close, focus returns to whatever opened it.
+   */
+  useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null;
+    confirmRef.current?.focus();
+
+    const focusable = () => {
+      const root = panelRef.current;
+      if (!root) return [] as HTMLElement[];
+      return [
+        ...root.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])',
+        ),
+      ].filter((el) => el.getClientRects().length > 0);
+    };
+
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        cancelRef.current();
+        return;
+      }
+      if (event.key !== "Tab") return;
+
+      const items = focusable();
+      if (items.length === 0) return;
+
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      const inside = active ? panelRef.current?.contains(active) : false;
+
+      if (event.shiftKey) {
+        if (!inside || active === first) {
+          event.preventDefault();
+          last.focus();
+        }
+      } else if (!inside || active === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      opener?.focus?.();
+    };
+  }, []);
 
   return (
     <div
@@ -45,6 +103,7 @@ export default function ConfirmDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-title"
+        ref={panelRef}
         onClick={(event) => event.stopPropagation()}
         className="animate-rise scroll-y max-h-[90dvh] w-full max-w-xl rounded-[30px] bg-surface p-7 shadow-[var(--shadow-float)] sm:p-8"
       >

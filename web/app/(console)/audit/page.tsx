@@ -37,6 +37,7 @@ export default function AuditPage() {
       <SectionHead
         eyebrow="Audit log"
         title="Everything the system did, and who released it"
+        level={1}
         note={
           <>
             Every escalation, every response the guardrail blocked, and every action a human

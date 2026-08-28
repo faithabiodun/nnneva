@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useDemo } from "@/lib/store";
 
@@ -63,6 +63,23 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     setOpen(false);
   }
 
+  // Escape closes the drawer, and the page behind it does not scroll while it
+  // is open — on a phone that scroll bleed is the difference between a drawer
+  // and a broken page.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = previous;
+    };
+  }, [open]);
+
   return (
     <div className="flex min-h-dvh">
       {/* ---- Desktop rail ------------------------------------------------- */}
@@ -79,8 +96,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             className="absolute inset-0 bg-midnight/70 backdrop-blur-sm"
             onClick={() => setOpen(false)}
           />
-          <aside className="animate-rise absolute inset-y-0 left-0 flex w-[276px] flex-col border-r border-line-strong bg-canvas">
-            <RailContents pathname={pathname} onClose={() => setOpen(false)} />
+          <aside
+            role="dialog"
+            aria-modal="true"
+            aria-label="Navigation"
+            className="animate-rise absolute inset-y-0 left-0 flex w-[276px] flex-col border-r border-line-strong bg-canvas"
+          >
+            <RailContents pathname={pathname} onClose={() => setOpen(false)} autoFocusClose />
           </aside>
         </div>
       )}
@@ -132,8 +154,23 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
 /* -------------------------------------------------------------------------- */
 
-function RailContents({ pathname, onClose }: { pathname: string; onClose?: () => void }) {
+function RailContents({
+  pathname,
+  onClose,
+  autoFocusClose = false,
+}: {
+  pathname: string;
+  onClose?: () => void;
+  autoFocusClose?: boolean;
+}) {
   const { queue, savedQuestions } = useDemo();
+  const closeRef = useRef<HTMLButtonElement>(null);
+
+  // Opening the drawer should put the keyboard inside it, not leave focus on
+  // the menu button behind the overlay.
+  useEffect(() => {
+    if (autoFocusClose) closeRef.current?.focus();
+  }, [autoFocusClose]);
 
   const counts = {
     queue: queue.filter((item) => item.status === "open").length,
@@ -147,7 +184,13 @@ function RailContents({ pathname, onClose }: { pathname: string; onClose?: () =>
           <Wordmark />
         </Link>
         {onClose && (
-          <button type="button" aria-label="Close navigation" className="btn btn-ghost px-2" onClick={onClose}>
+          <button
+            ref={closeRef}
+            type="button"
+            aria-label="Close navigation"
+            className="btn btn-ghost px-2"
+            onClick={onClose}
+          >
             <IconClose />
           </button>
         )}

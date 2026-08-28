@@ -37,6 +37,7 @@ export default function QuestionsPage() {
       <SectionHead
         eyebrow="Question bank"
         title={`${open.length} questions saved for the next contact`}
+        level={1}
         note="Everything on this page is something Nnneva did not answer. When the curated corpus does not cover a question, it is saved rather than guessed at — which is the safer behaviour and, as it turns out, the more useful one."
       />
 

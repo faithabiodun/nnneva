@@ -26,6 +26,7 @@ export default function CohortPage() {
       <SectionHead
         eyebrow="Cohort intelligence"
         title={`${breakdown.enrolled} enrolled mothers`}
+        level={1}
         note="One primary health centre, one community health worker, and a caseload no human can read end to end. This is the whole of it, in the shape the sweep left it in this morning."
       />
 

@@ -45,6 +45,7 @@ export default function QueueView() {
       <SectionHead
         eyebrow={`Ranked by the ${formatTime(SWEEP_RAN_AT)} sweep`}
         title="Review queue"
+        level={1}
         note="Emergency first, then urgent, then routine — and within a band, whoever has been waiting longest. Each item carries the agent's reasoning and the raw evidence."
         aside={
           <div className="flex flex-wrap items-center gap-2">

@@ -249,32 +249,35 @@ const EVENT_STYLE: Record<TimelineEvent["kind"], { dot: string; ring: string; la
 
 function Timeline({ events }: { events: TimelineEvent[] }) {
   return (
-    <ol className="relative">
-      {/* The spine. Stops at the last marker rather than running off the end. */}
+    <div className="relative">
+      {/* The spine, stopping at the last marker rather than running off the end.
+          It sits outside the list because an <ol> may only contain <li>. */}
       <span className="absolute top-2 bottom-4 left-[35px] w-px bg-line" aria-hidden />
 
-      {events.map((event, index) => {
-        const style = EVENT_STYLE[event.kind];
-        return (
-          <li key={index} className="relative flex gap-4 pb-7 last:pb-0">
-            <span className="tnum w-8 shrink-0 pt-0.5 text-right text-caption font-semibold text-text-3">
-              {event.week}
-            </span>
+      <ol>
+        {events.map((event, index) => {
+          const style = EVENT_STYLE[event.kind];
+          return (
+            <li key={index} className="relative flex gap-4 pb-7 last:pb-0">
+              <span className="tnum w-8 shrink-0 pt-0.5 text-right text-caption font-semibold text-text-3">
+                {event.week}
+              </span>
 
-            <span className={`relative z-10 mt-1 grid size-3.5 shrink-0 place-items-center rounded-full ${style.ring}`}>
-              <span className={`size-1.5 rounded-full ${style.dot}`} aria-hidden />
-            </span>
+              <span className={`relative z-10 mt-1 grid size-3.5 shrink-0 place-items-center rounded-full ${style.ring}`}>
+                <span className={`size-1.5 rounded-full ${style.dot}`} aria-hidden />
+              </span>
 
-            <div className="min-w-0 flex-1 pb-0.5">
-              <p className={`text-small font-semibold ${style.label}`}>{event.label}</p>
-              {event.detail && (
-                <p className="mt-1.5 text-small leading-relaxed text-text-2">{event.detail}</p>
-              )}
-              {event.at && <p className="mt-1.5 text-caption text-text-3">{formatDate(event.at)}</p>}
-            </div>
-          </li>
-        );
-      })}
-    </ol>
+              <div className="min-w-0 flex-1 pb-0.5">
+                <p className={`text-small font-semibold ${style.label}`}>{event.label}</p>
+                {event.detail && (
+                  <p className="mt-1.5 text-small leading-relaxed text-text-2">{event.detail}</p>
+                )}
+                {event.at && <p className="mt-1.5 text-caption text-text-3">{formatDate(event.at)}</p>}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
   );
 }

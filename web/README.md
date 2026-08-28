@@ -118,6 +118,27 @@ breaking:
 Band colour is defined once, in `components/ui.tsx` (`BAND_STYLE`,
 `STATE_STYLE`), rather than spelled out at each call site.
 
+## Accessibility
+
+Checked against the rendered DOM rather than against the source, because the
+interesting failures only appear once a component is composed:
+
+- **Contrast** — every text/background pair on every route is at or above WCAG
+  AA, compositing real ancestor backgrounds and Tailwind's `oklab()` alpha
+  output. Graphical fills are held to 3:1 and text to 4.5:1, which is why red
+  has two tokens.
+- **Structure** — one `<h1>` per route, no skipped heading levels, a `<main>`
+  landmark, an accessible name on every control, and lists that contain only
+  `<li>`.
+- **Keyboard** — the confirmation dialog traps Tab and Shift+Tab, closes on
+  Escape, and returns focus to whatever opened it. This matters more here than
+  on a normal modal: without the trap a keyboard user can tab out of a pending
+  mother-facing action, activate something behind the overlay, and never learn
+  what they released. The mobile drawer does the same and locks body scroll
+  while open.
+- **Motion** — every animation resolves to `none` under
+  `prefers-reduced-motion: reduce`.
+
 Every text/background pair on every route is at or above WCAG AA — verified
 against the rendered DOM (compositing real ancestor backgrounds, and Tailwind's
 `oklab()` alpha output) rather than against the token table, because several

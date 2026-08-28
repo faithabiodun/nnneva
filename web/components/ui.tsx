@@ -82,25 +82,34 @@ export function Eyebrow({ children, className = "" }: { children: ReactNode; cla
   return <p className={`eyebrow ${className}`}>{children}</p>;
 }
 
-/** Section heading with an optional right-hand slot, used across the console. */
+/**
+ * Section heading with an optional right-hand slot, used across the console.
+ *
+ * `level` exists because on most console routes this component *is* the page
+ * title, and a route whose only heading is an h2 leaves a screen reader with no
+ * h1 to land on. Sections within a page keep the default.
+ */
 export function SectionHead({
   eyebrow,
   title,
   note,
   aside,
+  level = 2,
   className = "",
 }: {
   eyebrow?: string;
   title: string;
   note?: ReactNode;
   aside?: ReactNode;
+  level?: 1 | 2;
   className?: string;
 }) {
+  const Heading = level === 1 ? "h1" : "h2";
   return (
     <div className={`flex flex-wrap items-end justify-between gap-4 ${className}`}>
       <div className="min-w-0">
         {eyebrow && <Eyebrow className="mb-2">{eyebrow}</Eyebrow>}
-        <h2 className="text-h2">{title}</h2>
+        <Heading className="text-h2">{title}</Heading>
         {note && <p className="mt-2 max-w-2xl text-small text-text-2">{note}</p>}
       </div>
       {aside}
