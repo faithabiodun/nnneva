@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Sparkles, Heart, CheckCircle2, ArrowRight, ShieldCheck } from 'lucide-react';
 import { NnnevaLogo } from './NnnevaLogo';
+import { useModal } from '../hooks/useModal';
 
 interface GetStartedModalProps {
   isOpen: boolean;
@@ -16,6 +17,8 @@ export const GetStartedModal: React.FC<GetStartedModalProps> = ({ isOpen, onClos
     supportGoals: ['Hospital bag & registry', 'OBGYN appointments sync', 'Nutrition & fetal tracker'],
   });
   const [isSuccess, setIsSuccess] = useState(false);
+
+  const { panelRef, onBackdropMouseDown } = useModal(isOpen, onClose);
 
   if (!isOpen) return null;
 
@@ -38,13 +41,23 @@ export const GetStartedModal: React.FC<GetStartedModalProps> = ({ isOpen, onClos
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white w-full max-w-lg rounded-3xl p-6 sm:p-8 shadow-2xl border border-[#EDE2DC] max-h-[90vh] overflow-y-auto animate-scale-in">
+    <div
+      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4"
+      onMouseDown={onBackdropMouseDown}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Get started with Nnneva"
+    >
+      <div
+        ref={panelRef}
+        tabIndex={-1}
+        className="bg-white w-full max-w-lg rounded-3xl p-6 sm:p-8 shadow-2xl border border-[#EDE2DC] max-h-[90vh] overflow-y-auto animate-scale-in">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-gray-100">
           <NnnevaLogo size="sm" />
           <button
             type="button"
+            aria-label="Close"
             onClick={onClose}
             className="p-1.5 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
           >

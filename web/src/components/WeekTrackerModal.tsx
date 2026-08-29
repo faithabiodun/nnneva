@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Sparkles, CheckCircle2, Heart, Scale, Ruler, Activity } from 'lucide-react';
 import { ASSETS, WEEK_32_DETAILS } from '../constants';
+import { useModal } from '../hooks/useModal';
 
 interface WeekTrackerModalProps {
   isOpen: boolean;
@@ -11,11 +12,22 @@ export const WeekTrackerModal: React.FC<WeekTrackerModalProps> = ({ isOpen, onCl
   const [kickCount, setKickCount] = useState(7);
   const [isCounting, setIsCounting] = useState(false);
 
+  const { panelRef, onBackdropMouseDown } = useModal(isOpen, onClose);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white w-full max-w-2xl rounded-3xl p-6 sm:p-8 shadow-2xl border border-[#EDE2DC] max-h-[90vh] overflow-y-auto animate-scale-in">
+    <div
+      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4"
+      onMouseDown={onBackdropMouseDown}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Week 32 development"
+    >
+      <div
+        ref={panelRef}
+        tabIndex={-1}
+        className="bg-white w-full max-w-2xl rounded-3xl p-6 sm:p-8 shadow-2xl border border-[#EDE2DC] max-h-[90vh] overflow-y-auto animate-scale-in">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-gray-100">
           <div className="flex items-center gap-3">
@@ -40,6 +52,7 @@ export const WeekTrackerModal: React.FC<WeekTrackerModalProps> = ({ isOpen, onCl
           </div>
           <button
             type="button"
+            aria-label="Close"
             onClick={onClose}
             className="p-2 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
           >

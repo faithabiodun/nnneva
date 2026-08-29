@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, Bell, Calendar, Sparkles, AlertCircle, HeartHandshake } from 'lucide-react';
+import { useModal } from '../hooks/useModal';
 
 interface NotificationsModalProps {
   isOpen: boolean;
@@ -7,6 +8,8 @@ interface NotificationsModalProps {
 }
 
 export const NotificationsModal: React.FC<NotificationsModalProps> = ({ isOpen, onClose }) => {
+  const { panelRef, onBackdropMouseDown } = useModal(isOpen, onClose);
+
   if (!isOpen) return null;
 
   const notifications = [
@@ -43,8 +46,17 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({ isOpen, 
   ];
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl border border-[#EDE2DC] animate-scale-in">
+    <div
+      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4"
+      onMouseDown={onBackdropMouseDown}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Notifications"
+    >
+      <div
+        ref={panelRef}
+        tabIndex={-1}
+        className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl border border-[#EDE2DC] animate-scale-in">
         <div className="flex items-center justify-between pb-3 border-b border-gray-100">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-[#FDEEF1] text-[#D8486A] flex items-center justify-center">
@@ -90,6 +102,7 @@ export const NotificationsModal: React.FC<NotificationsModalProps> = ({ isOpen, 
         <div className="mt-5 pt-3 border-t border-gray-100 flex justify-end">
           <button
             type="button"
+            aria-label="Close"
             onClick={onClose}
             className="text-xs text-[#D8486A] font-semibold hover:underline"
           >

@@ -39,10 +39,18 @@ export default function App() {
     }
   };
 
+  // The shell is min-h-dvh rather than h-screen + overflow-hidden.
+  //
+  // The fixed-viewport version clipped anything that did not fit and gave no
+  // way to reach it: at 1024x500 the "Start Your Journey" button and the whole
+  // quick-tool row rendered below the fold with the page unable to scroll. Now
+  // it fills the viewport when there is room and grows when there is not. dvh
+  // keeps it honest against mobile browser chrome, and w-full avoids the
+  // horizontal scrollbar that w-screen causes once a vertical one appears.
   return (
     <main
       id="nnneva-app"
-      className="h-screen w-screen flex flex-col overflow-hidden bg-[#FAF5F2] text-[#15392B] antialiased select-none relative"
+      className="min-h-dvh w-full flex flex-col overflow-x-hidden bg-[#FAF5F2] text-[#15392B] antialiased relative"
     >
       {/* Full-Screen Mother Photo Background (Fills Whole Screen) */}
       <div className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-hidden">

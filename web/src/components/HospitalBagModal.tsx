@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Play, Check, Plus, PackageCheck, Sparkles, CheckCircle2 } from 'lucide-react';
 import { ASSETS } from '../constants';
+import { useModal } from '../hooks/useModal';
 
 interface HospitalBagModalProps {
   isOpen: boolean;
@@ -18,6 +19,8 @@ export const HospitalBagModal: React.FC<HospitalBagModalProps> = ({ isOpen, onCl
     { id: '6', name: 'Pediatrician contact info & printed birth preferences plan', category: 'Documents', packed: false },
   ]);
 
+  const { panelRef, onBackdropMouseDown } = useModal(isOpen, onClose);
+
   if (!isOpen) return null;
 
   const toggleItem = (id: string) => {
@@ -29,8 +32,17 @@ export const HospitalBagModal: React.FC<HospitalBagModalProps> = ({ isOpen, onCl
   const packedCount = items.filter((i) => i.packed).length;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white w-full max-w-2xl rounded-3xl p-6 sm:p-8 shadow-2xl border border-[#EDE2DC] max-h-[90vh] overflow-y-auto animate-scale-in">
+    <div
+      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4"
+      onMouseDown={onBackdropMouseDown}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Hospital bag checklist"
+    >
+      <div
+        ref={panelRef}
+        tabIndex={-1}
+        className="bg-white w-full max-w-2xl rounded-3xl p-6 sm:p-8 shadow-2xl border border-[#EDE2DC] max-h-[90vh] overflow-y-auto animate-scale-in">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-gray-100">
           <div>
@@ -137,6 +149,7 @@ export const HospitalBagModal: React.FC<HospitalBagModalProps> = ({ isOpen, onCl
           </p>
           <button
             type="button"
+            aria-label="Close"
             onClick={onClose}
             className="bg-[#15392B] text-white text-xs font-semibold px-5 py-2.5 rounded-xl hover:bg-[#1E4D3B] transition-colors"
           >

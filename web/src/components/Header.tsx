@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Search, Bell, ChevronDown, Sparkles, X } from 'lucide-react';
 import { NnnevaLogo } from './NnnevaLogo';
 import { ASSETS, NAV_LINKS } from '../constants';
+import { Avatar } from './Avatar';
 
 interface HeaderProps {
   onOpenGetStarted: () => void;
@@ -104,11 +105,10 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => setShowProfileMenu(!showProfileMenu)}
               className="flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D8486A] rounded-full p-0.5 hover:bg-white/60 transition-colors"
             >
-              <img
+              <Avatar
                 src={ASSETS.userProfile}
                 alt="Amara (Mom-to-be)"
                 className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover ring-2 ring-[#E8DED8] shadow-xs"
-                referrerPolicy="no-referrer"
               />
               <ChevronDown className="w-3.5 h-3.5 text-gray-500 hidden sm:block" />
             </button>

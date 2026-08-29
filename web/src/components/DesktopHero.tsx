@@ -2,6 +2,7 @@ import React from 'react';
 import { ArrowRight, Play, Plus, Calendar, CheckSquare, Users, Wallet } from 'lucide-react';
 import { ASSETS, QUICK_TOOLS } from '../constants';
 import { NnnevaEmblem } from './NnnevaLogo';
+import { Avatar } from './Avatar';
 
 interface DesktopHeroProps {
   onOpenWeekModal: () => void;
@@ -172,12 +173,11 @@ export const DesktopHero: React.FC<DesktopHeroProps> = ({
           {/* Avatar Stack */}
           <div className="flex -space-x-2.5">
             {ASSETS.avatars.map((url, idx) => (
-              <img
+              <Avatar
                 key={idx}
                 src={url}
                 alt="Community Mother"
                 className="w-8 h-8 rounded-full object-cover ring-2 ring-white shadow-xs"
-                referrerPolicy="no-referrer"
               />
             ))}
             <div className="w-8 h-8 rounded-full bg-[#15392B] text-white flex items-center justify-center ring-2 ring-white shadow-xs">

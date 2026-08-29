@@ -2,6 +2,7 @@ import React from 'react';
 import { ArrowRight, Play, Plus, Calendar, CheckSquare, Users, Wallet } from 'lucide-react';
 import { ASSETS, QUICK_TOOLS } from '../constants';
 import { NnnevaEmblem } from './NnnevaLogo';
+import { Avatar } from './Avatar';
 
 interface MobileHeroProps {
   onOpenWeekModal: () => void;
@@ -104,7 +105,7 @@ export const MobileHero: React.FC<MobileHeroProps> = ({
       <div className="w-full flex items-center justify-between bg-white/95 backdrop-blur-xs p-2 rounded-2xl border border-[#EDE2DC] shadow-md z-20 shrink-0">
         <div className="flex items-center gap-1.5">
           <div className="flex -space-x-2">
-            <img src={ASSETS.avatars[0]} alt="Mother" className="w-6 h-6 rounded-full object-cover ring-1 ring-white" />
+            <Avatar src={ASSETS.avatars[0]} alt="Mother" className="w-6 h-6 rounded-full object-cover ring-1 ring-white" />
             <div className="w-6 h-6 rounded-full bg-[#15392B] text-white flex items-center justify-center text-[9px] ring-1 ring-white">
               <Plus className="w-3 h-3" />
             </div>
