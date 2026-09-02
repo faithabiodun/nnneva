@@ -1,0 +1,21 @@
+.git
+.git/**
+node_modules
+node_modules/**
+
+# Never upload local secrets. API_BASE_URL is set in the Pxxl dashboard
+# instead, pointing at the deployed API rather than localhost.
+.env
+.env.*
+
+*.log
+.next
+.next/**
+.turbo
+.turbo/**
+.cache
+.cache/**
+.config/pxxl
+.config/pxxl/**
+.pxxlignore
+pxxl-source.zip

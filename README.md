@@ -93,6 +93,37 @@ browser ──▶ Next.js server ──(bearer token)──▶ FastAPI ──▶
    └── httpOnly ──┘
 ```
 
+## Deploying
+
+The two halves deploy to different places, because the Pxxl CLI has no Python
+runtime — it detects `nextjs`, `vite`, `astro`, `go` and `static`, and there is
+no reference to `requirements.txt`, `uvicorn` or `gunicorn` anywhere in it.
+
+**The web app — Pxxl.** `web/pxxl.toml` and `web/.pxxlignore` are committed, so
+this is the whole flow:
+
+```bash
+npm install -g @pxxlapp/pxxl
+pxxl login --api-key <your key>     # from the Pxxl dashboard
+cd web && pxxl deploy
+```
+
+Set `API_BASE_URL` in the Pxxl dashboard to the deployed API's origin. It is
+deliberately not in the repo: `.env*` is excluded from the upload, and the local
+value points at `localhost:8000`.
+
+**The API — anywhere that runs Python and Postgres.** It is an ordinary ASGI
+app with no platform-specific code:
+
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port $PORT
+```
+
+Required environment: `DATABASE_URL`, `SECRET_KEY`, and `WEB_ORIGIN` set to the
+deployed web app's origin so CORS admits it. Run `alembic upgrade head` on
+release. `AGENT_ENGINE` and the AWS variables are optional — see
+[`api/README.md`](api/README.md).
+
 ## Guardrails
 
 These are product requirements, not disclaimers:

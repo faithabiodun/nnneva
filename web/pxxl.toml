@@ -1,0 +1,9 @@
+# Pxxl deployment config for the Nnneva web app.
+#
+# Only the front end lives here. The FastAPI service is deployed separately —
+# the Pxxl CLI has no Python runtime (see the deployment note in ../README.md).
+name = "nnneva"
+domainChoice = "pxxl.pro"
+environment = "production"
+deployEnvironment = "prod"
+port = 3000
