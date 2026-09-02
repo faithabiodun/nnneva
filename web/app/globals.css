@@ -26,9 +26,15 @@
   --color-ink: #0b2c22;
   --color-ink-2: #12312a;
   --color-ink-3: #2c4740;
-  --color-muted: #647a72;
-  --color-muted-2: #7c8f88;
-  --color-faint: #9aaaa3;
+  /* The secondary text ramp. The mockup's greys (#647a72 / #7c8f88 / #9aaaa3)
+     land between 2.2:1 and 4.3:1 on the cream grounds, which is below AA for
+     text — not something to ship on a product read one-handed on a phone at
+     night. These keep the same hue and the same three-step separation, shifted
+     dark enough that the lightest still clears 4.5:1 on every ground it sits
+     on, green-wash included. */
+  --color-muted: #42514b;
+  --color-muted-2: #535f5b;
+  --color-faint: #66716c;
 
   /* ---- Green: the calm, clinical half ---------------------------------- */
   --color-green: #1f6b54;
@@ -157,7 +163,19 @@
     border-radius: var(--radius-md);
   }
 
+  /* The heading inside a card. Smaller and lighter than the page's h3, which is
+     a marketing-page size — a card should not shout over its own contents. */
+  .card-title {
+    font-family: var(--font-sans);
+    font-size: 16.5px;
+    font-weight: 500;
+    line-height: 1.35;
+    letter-spacing: -0.012em;
+    color: var(--color-ink);
+  }
+
   .eyebrow {
+    font-family: var(--font-sans);
     font-size: 11px;
     font-weight: 500;
     line-height: 1.3;

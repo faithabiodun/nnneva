@@ -14,10 +14,13 @@ export default async function Icon() {
 
   return new ImageResponse(
     (
-      <div style={{ display: "flex", width: "100%", height: "100%" }}>
+      // The PNG carries its own whitespace margin, so it is scaled past the
+      // frame and pulled back by the same 138% / -19% the app mark uses.
+      <div style={{ display: "flex", width: "100%", height: "100%", overflow: "hidden" }}>
         <img
-          width="32"
-          height="32"
+          width={44}
+          height={44}
+          style={{ marginTop: -6, marginLeft: -6 }}
           src={`data:image/png;base64,${logo.toString("base64")}`}
           alt=""
         />

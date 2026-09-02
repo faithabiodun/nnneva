@@ -70,7 +70,9 @@ export function AppShell({
           </button>
 
           <div className="min-w-0">
-            <h1 className="truncate font-display text-[clamp(20px,2.4vw,26px)] font-semibold tracking-[-0.015em]">
+            {/* Wraps rather than truncates: a cut-off page title is worse than a
+                header that grows by one line on a narrow screen. */}
+            <h1 className="font-display text-[clamp(20px,2.4vw,26px)] font-semibold tracking-[-0.015em] text-balance">
               {title}
             </h1>
             {subtitle && <p className="mt-0.5 text-caption text-muted-2">{subtitle}</p>}
@@ -134,6 +136,11 @@ function SidebarBody({ pathname, onClose }: { pathname: string; onClose?: () => 
                 />
               </svg>
               <span className="whitespace-nowrap">{n.label}</span>
+              {"badge" in n && (
+                <span className="ml-auto grid h-[19px] min-w-[19px] shrink-0 place-items-center rounded-pill bg-pink px-1.5 text-[11px] font-medium text-white">
+                  1
+                </span>
+              )}
             </Link>
           );
         })}

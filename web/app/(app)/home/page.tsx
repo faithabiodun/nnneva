@@ -33,7 +33,7 @@ export default function HomePage() {
         <div className="flex flex-col gap-5">
           {/* ---- The one thing that needs a decision ---------------------- */}
           <section className="rounded-lg bg-pink-wash p-6">
-            <p className="eyebrow text-pink">Waiting for you</p>
+            <p className="eyebrow text-pink-deep">Waiting for you</p>
             <p className="mt-3 text-lead text-ink">
               Share the blood test reminder with Chidi, your trusted contact?
             </p>
@@ -53,7 +53,7 @@ export default function HomePage() {
 
           {/* ---- Today ---------------------------------------------------- */}
           <section className="card p-6">
-            <h2 className="text-h3 font-sans font-medium">Today</h2>
+            <h2 className="card-title">Today</h2>
             <ul className="mt-4 flex flex-col">
               {TODAY.map((t) => (
                 <li
@@ -94,7 +94,7 @@ export default function HomePage() {
           {/* ---- Plans ---------------------------------------------------- */}
           <section className="card p-6">
             <div className="flex flex-wrap items-baseline justify-between gap-3">
-              <h2 className="text-h3 font-sans font-medium">Your active plans</h2>
+              <h2 className="card-title">Your active plans</h2>
               <Link href="/tasks" className="text-caption font-medium text-pink">
                 Open tasks
               </Link>
@@ -118,7 +118,7 @@ export default function HomePage() {
         {/* ---- Right column ------------------------------------------------ */}
         <div className="flex flex-col gap-5">
           <section className="card p-6">
-            <h2 className="text-h3 font-sans font-medium">Next appointment</h2>
+            <h2 className="card-title">Next appointment</h2>
             <div className="mt-4 flex items-center gap-4">
               <span className="grid size-14 shrink-0 place-items-center rounded-md bg-ink text-center leading-none text-canvas">
                 <span className="block">
@@ -142,7 +142,7 @@ export default function HomePage() {
 
           <section className="card p-6">
             <div className="flex flex-wrap items-baseline justify-between gap-3">
-              <h2 className="text-h3 font-sans font-medium">Nnneva activity</h2>
+              <h2 className="card-title">Nnneva activity</h2>
               <Link href="/activity" className="text-caption font-medium text-pink">
                 All
               </Link>

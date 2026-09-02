@@ -13,7 +13,7 @@ export default function LoginPage() {
 
         <form action="/home" className="flex flex-col gap-3.5">
           <label className="block">
-            <span className="mb-[7px] block text-[12.5px] text-[#5E736B]">Email</span>
+            <span className="mb-[7px] block text-[12.5px] text-muted">Email</span>
             <input
               type="email"
               name="email"
@@ -24,7 +24,7 @@ export default function LoginPage() {
           </label>
 
           <label className="block">
-            <span className="mb-[7px] block text-[12.5px] text-[#5E736B]">Password</span>
+            <span className="mb-[7px] block text-[12.5px] text-muted">Password</span>
             <input
               type="password"
               name="password"

@@ -115,7 +115,7 @@ export function AgentRail() {
 
                 {step.kind === "approval" && (
                   <div className="rounded-md bg-pink-wash p-5">
-                    <p className="eyebrow text-pink">{step.approval.eyebrow}</p>
+                    <p className="eyebrow text-pink-deep">{step.approval.eyebrow}</p>
                     <p className="mt-2.5 text-body text-ink">{step.approval.question}</p>
                     <div className="mt-4 flex flex-wrap gap-2">
                       <span className="btn btn-pink py-2.5 text-small">{step.approval.accept}</span>
