@@ -52,7 +52,7 @@ export default function LandingPage() {
 
             <div className="mt-8 flex justify-center">
               <Link
-                href="/onboarding"
+                href="/signup"
                 className="rounded-pill bg-pink px-8 py-4 text-[16px] font-medium text-white shadow-[0_10px_30px_rgba(214,43,96,0.28)] transition-colors hover:bg-pink-deep"
               >
                 Start with Nnneva
@@ -124,9 +124,6 @@ export default function LandingPage() {
               Nnneva does not try to be a doctor. When a message looks like a medical red flag,
               normal automation stops and you are pointed at care instead.
             </p>
-            <Link href="/safety" className="btn btn-quiet mt-7">
-              See the safety path
-            </Link>
           </div>
 
           <ul className="flex flex-col gap-2.5">
@@ -150,7 +147,7 @@ export default function LandingPage() {
             Set up your pregnancy context in about two minutes.
           </p>
           <Link
-            href="/onboarding"
+            href="/signup"
             className="mt-8 inline-flex rounded-pill bg-pink px-8 py-4 text-[16px] font-medium text-white transition-colors hover:bg-pink-deep"
           >
             Start with Nnneva

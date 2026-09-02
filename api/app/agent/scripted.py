@@ -38,15 +38,25 @@ class Intent:
     share: bool = False
     complete_task: str | None = None
     target_day: date | None = None
+    # She is telling Nnneva an appointment exists, not asking about one it knows.
+    states_appointment: bool = False
 
 
 def read_intent(message: str) -> Intent:
     text = (message or "").lower()
     intent = Intent()
 
-    intent.prepare_appointment = bool(
+    names_visit = bool(
         re.search(r"\b(appointment|antenatal|anc|visit|midwife|clinic|check-?up|scan)\b", text)
-    ) and bool(re.search(r"\b(prepare|preparing|question|ready|coming up|next)\b", text))
+    )
+    intent.prepare_appointment = names_visit and bool(
+        re.search(r"\b(prepare|preparing|question|ready|coming up|next)\b", text)
+    )
+    # "I have an appointment on Thursday" / "my scan is next Friday" — a claim
+    # about the diary, which Nnneva should record rather than ignore.
+    intent.states_appointment = names_visit and bool(
+        re.search(r"\b(i have|i've got|i have got|my|there is|there's|booked|scheduled)\b", text)
+    )
     intent.blood_test = bool(re.search(r"\b(blood test|bloods|lab|test|sample|fasting)\b", text))
     intent.reminders = bool(re.search(r"\b(remind|reminder|remember|don'?t forget)\b", text))
     intent.share = bool(re.search(r"\b(share|send|tell|forward|let .* know)\b", text)) and bool(
@@ -101,14 +111,43 @@ def run(box: T.Toolbox, message: str, screening: Screening) -> str:
         if closed:
             did.append(f"marked “{closed}” complete")
 
-    appointment = (context.get("next_appointments") or [None])[0]
+    known = context.get("next_appointments") or []
+    appointment = known[0] if known else None
+
+    # She named a visit Nnneva does not have. Record it first — everything below
+    # (questions, fasting reminder, the day-before tasks) hangs off its date.
+    if (
+        intent.states_appointment
+        and intent.target_day
+        and not any(_covers(a, intent.target_day) for a in known)
+    ):
+        created = T.create_appointment(
+            box, starts_at=_at_clinic_hour(intent.target_day), title=_visit_title(message)
+        )
+        if "error" not in created:
+            appointment = {
+                "id": created["id"],
+                "title": created["title"],
+                "starts_at": created["starts_at"],
+                "location": context.get("care_location"),
+                "clinician": context.get("clinician"),
+            }
+            did.append(f"put the appointment in your diary for {intent.target_day:%A %-d %B}")
+    elif intent.target_day:
+        # She named a day Nnneva already knows about. Prepare for that visit,
+        # not for whichever one happens to be soonest.
+        named = next((a for a in known if _covers(a, intent.target_day)), None)
+        appointment = named or appointment
 
     if intent.prepare_appointment or (appointment and not any(vars(intent).values())):
         questions = DEFAULT_QUESTIONS[:]
         if intent.blood_test:
             questions.insert(1, "What do I need to do before the blood test?")
         result = T.create_appointment_preparation(
-            box, questions=questions, preparation=DEFAULT_PREPARATION
+            box,
+            appointment_id=appointment["id"] if appointment else None,
+            questions=questions,
+            preparation=DEFAULT_PREPARATION,
         )
         if "error" not in result:
             did.append(f"saved {result['questions']} questions for your next visit")
@@ -219,6 +258,35 @@ def _complete_matching_task(box: T.Toolbox, message: str) -> str | None:
         return None
     T.update_task(box, best.id, status="Complete")
     return best.title
+
+
+def _covers(appointment: dict | None, day: date) -> bool:
+    """Whether a known appointment already falls on that day."""
+    if not appointment:
+        return False
+    return datetime.fromisoformat(appointment["starts_at"]).date() == day
+
+
+def _at_clinic_hour(day: date) -> str:
+    """A stated appointment with no time defaults to a morning clinic slot."""
+    return datetime.combine(day, time(9, 30), tzinfo=timezone.utc).isoformat()
+
+
+def _visit_title(message: str) -> str:
+    """Name the visit she described.
+
+    Order matters. "I have an antenatal appointment... and I need my blood test
+    done" names one visit and one errand; matching "blood test" first would file
+    the appointment under the wrong name.
+    """
+    text = message.lower()
+    if re.search(r"\b(antenatal|anc|appointment|review|midwife|check-?up)\b", text):
+        return "Antenatal review"
+    if "scan" in text:
+        return "Scan"
+    if re.search(r"\bblood test|\bbloods\b", text):
+        return "Blood test"
+    return "Antenatal review"
 
 
 def _iso(value: date | None) -> str | None:

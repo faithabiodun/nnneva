@@ -107,6 +107,17 @@ class AppointmentOut(BaseModel):
     preparation: list[PreparationOut]
 
 
+class AppointmentsOut(BaseModel):
+    """Split by the server, which is the only clock worth trusting here.
+
+    A device with a wrong date would otherwise file the next visit under
+    "past" and hide the preparation for it.
+    """
+
+    upcoming: list[AppointmentOut]
+    past: list[AppointmentOut]
+
+
 class MemoryOut(BaseModel):
     model_config = ORM
     id: str

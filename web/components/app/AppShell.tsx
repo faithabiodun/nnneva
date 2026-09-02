@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 import { Mark } from "@/components/Brand";
+import { useShell, type Shell } from "./ShellContext";
 import { NAV } from "./nav";
 
 /**
@@ -26,6 +27,7 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const shell = useShell();
   const [open, setOpen] = useState(false);
 
   // Derived rather than reacted to, so the drawer closes in the same commit as
@@ -39,7 +41,7 @@ export function AppShell({
   return (
     <div className="flex min-h-dvh bg-canvas">
       <aside className="sticky top-0 hidden h-dvh w-[244px] shrink-0 flex-col bg-ink px-4 py-5.5 lg:flex">
-        <SidebarBody pathname={pathname} />
+        <SidebarBody pathname={pathname} shell={shell} />
       </aside>
 
       {open && (
@@ -51,7 +53,7 @@ export function AppShell({
             onClick={() => setOpen(false)}
           />
           <aside className="animate-rise absolute inset-y-0 left-0 flex w-[266px] flex-col bg-ink px-4 py-5.5">
-            <SidebarBody pathname={pathname} onClose={() => setOpen(false)} />
+            <SidebarBody pathname={pathname} shell={shell} onClose={() => setOpen(false)} />
           </aside>
         </div>
       )}
@@ -78,7 +80,11 @@ export function AppShell({
             {subtitle && <p className="mt-0.5 text-caption text-muted-2">{subtitle}</p>}
           </div>
 
-          {aside && <div className="ml-auto flex shrink-0 items-center gap-2.5">{aside}</div>}
+          {/* The week-and-due-date pill is the default: it is the one piece of
+              context worth carrying on every screen. A page can replace it. */}
+          <div className="ml-auto flex shrink-0 items-center gap-2.5">
+            {aside ?? <StagePill shell={shell} />}
+          </div>
         </div>
 
         <div className="flex-1 px-5 pb-12 sm:px-9">{children}</div>
@@ -87,7 +93,16 @@ export function AppShell({
   );
 }
 
-function SidebarBody({ pathname, onClose }: { pathname: string; onClose?: () => void }) {
+function SidebarBody({
+  pathname,
+  shell,
+  onClose,
+}: {
+  pathname: string;
+  shell: Shell;
+  onClose?: () => void;
+}) {
+  const firstInitial = shell.fullName.trim().charAt(0).toUpperCase() || "?";
   return (
     <>
       <div className="flex items-center gap-2.5 px-2 pt-1.5 pb-5.5">
@@ -136,9 +151,12 @@ function SidebarBody({ pathname, onClose }: { pathname: string; onClose?: () => 
                 />
               </svg>
               <span className="whitespace-nowrap">{n.label}</span>
-              {"badge" in n && (
-                <span className="ml-auto grid h-[19px] min-w-[19px] shrink-0 place-items-center rounded-pill bg-pink px-1.5 text-[11px] font-medium text-white">
-                  1
+              {"badge" in n && shell.pendingApprovals > 0 && (
+                <span
+                  className="ml-auto grid h-[19px] min-w-[19px] shrink-0 place-items-center rounded-pill bg-pink px-1.5 text-[11px] font-medium text-white"
+                  aria-label={`${shell.pendingApprovals} waiting for you`}
+                >
+                  {shell.pendingApprovals}
                 </span>
               )}
             </Link>
@@ -150,14 +168,33 @@ function SidebarBody({ pathname, onClose }: { pathname: string; onClose?: () => 
         <div className="mx-1 my-3 h-px bg-white/10" />
         <Link href="/profile" className="flex items-center gap-2.5 rounded-md p-2 hover:bg-white/5">
           <span className="grid size-8.5 shrink-0 place-items-center rounded-full bg-green font-display text-[15px] font-semibold text-white">
-            F
+            {firstInitial}
           </span>
           <span className="min-w-0">
-            <span className="block truncate text-small text-white">Faith Adeyemi</span>
-            <span className="block text-[11.5px] text-green-mid">32 weeks pregnant</span>
+            <span className="block truncate text-small text-white">{shell.fullName}</span>
+            <span className="block text-[11.5px] text-green-mid">
+              {shell.gestationalWeek === null
+                ? "Setup not finished"
+                : `${shell.gestationalWeek} weeks pregnant`}
+            </span>
           </span>
         </Link>
       </div>
     </>
+  );
+}
+
+/** "Week 30 · Due 14 Nov", or nothing at all before setup is finished. */
+function StagePill({ shell }: { shell: Shell }) {
+  if (shell.gestationalWeek === null || !shell.dueDate) return null;
+  const due = new Date(`${shell.dueDate}T00:00:00Z`).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  });
+  return (
+    <span className="pill hidden bg-green-wash text-green sm:inline-flex">
+      Week {shell.gestationalWeek} · Due {due}
+    </span>
   );
 }

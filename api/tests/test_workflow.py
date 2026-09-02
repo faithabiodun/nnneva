@@ -53,8 +53,8 @@ def test_the_core_workflow(client, signed_up):
     assert any("Fast from 21:00" in t["title"] for t in tasks)
 
     appointments = client.get("/appointments", headers=headers).json()
-    assert len(appointments[0]["questions"]) >= 4
-    assert len(appointments[0]["preparation"]) >= 3
+    assert len(appointments["upcoming"][0]["questions"]) >= 4
+    assert len(appointments["upcoming"][0]["preparation"]) >= 3
 
     memories = client.get("/memory", headers=headers).json()
     assert any("Blood test" in m["fact"] for m in memories)
@@ -168,3 +168,71 @@ def test_the_agent_continues_from_what_it_already_knows(client, signed_up):
     context_action = next(a for a in second["actions"] if a["tool"] == "get_user_context")
     assert "weeks" in context_action["summary"]
     assert "Lagoon" in context_action["summary"]
+
+
+def test_an_appointment_she_names_is_recorded_then_prepared_for(client, signed_up, db):
+    """The blueprint's opening line states an appointment. It has to land.
+
+    Before `create_appointment` existed the agent would prepare for a visit it
+    had no record of, and quietly save nothing.
+    """
+    from sqlalchemy import func, select
+
+    from app.models import Appointment
+
+    headers = signed_up
+    before = db.scalar(select(func.count()).select_from(Appointment))
+
+    run = client.post(
+        "/agent/runs",
+        headers=headers,
+        json={
+            "message": "I have a growth scan next Tuesday. Please prepare questions for it "
+            "and remind me the evening before."
+        },
+    ).json()
+
+    tools = [a["tool"] for a in run["actions"]]
+    assert "create_appointment" in tools
+    assert tools.index("create_appointment") < tools.index("create_appointment_preparation")
+
+    assert db.scalar(select(func.count()).select_from(Appointment)) == before + 1
+
+    body = client.get("/appointments", headers=headers).json()
+    scan = next(a for a in body["upcoming"] if a["title"] == "Scan")
+    assert scan["title"] == "Scan"
+    assert scan["questions"], "the new appointment should carry the prepared questions"
+    # Place and clinician came from her profile rather than being asked for.
+    assert scan["location"] == "Lagoon Antenatal Clinic"
+    assert scan["clinician"] == "Midwife Grace Okonkwo"
+
+
+def test_a_second_mention_does_not_duplicate_the_appointment(client, signed_up, db):
+    from sqlalchemy import func, select
+
+    from app.models import Appointment
+
+    message = "I have a growth scan next Tuesday, please prepare questions"
+    client.post("/agent/runs", headers=signed_up, json={"message": message})
+    after_first = db.scalar(select(func.count()).select_from(Appointment))
+
+    client.post("/agent/runs", headers=signed_up, json={"message": message})
+    assert db.scalar(select(func.count()).select_from(Appointment)) == after_first
+
+
+def test_the_visit_is_named_for_what_she_called_it(client, signed_up):
+    """An antenatal appointment that also mentions a blood test is still an
+    antenatal appointment. The errand does not rename the visit."""
+    headers = signed_up
+    client.post(
+        "/agent/runs",
+        headers=headers,
+        json={
+            "message": "I have an antenatal appointment next Tuesday and I need my blood "
+            "test done before it."
+        },
+    )
+    body = client.get("/appointments", headers=headers).json()
+    titles = [a["title"] for a in body["upcoming"]]
+    assert "Antenatal review" in titles
+    assert "Blood test" not in titles

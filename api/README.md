@@ -31,7 +31,7 @@ credentials are optional — see below.
 
 ## The agent
 
-Eight tools (§05), each one a plain function in `app/agent/tools.py`:
+Nine tools, each one a plain function in `app/agent/tools.py`:
 
 | Tool | What it does |
 | --- | --- |
@@ -39,9 +39,15 @@ Eight tools (§05), each one a plain function in `app/agent/tools.py`:
 | `safety_check` | Screens a message for obstetric red flags and records the result |
 | `create_task` / `update_task` | Creates and changes real tasks under a goal |
 | `schedule_reminder` | Schedules a reminder against a task |
+| `create_appointment` | Records a visit the user names, defaulting place and clinician from her profile |
 | `create_appointment_preparation` | Saves questions and preparation items for the next visit |
 | `save_memory` | Stores a fact so the user never repeats her context |
 | `share_with_contact` | **Never sends.** Raises an approval and stops |
+
+The blueprint lists eight tools. `create_appointment` is the ninth, and it was
+missing: the blueprint's own opening line — "I have an antenatal appointment
+next Thursday" — has to leave something behind, or the agent prepares for a
+visit it has no record of and quietly saves nothing.
 
 The blueprint also lists `log_agent_action`. There is no such tool: every call
 is recorded automatically at the tool boundary (`Toolbox.record`), so the
@@ -121,7 +127,7 @@ settings so there is one source of truth for where the database lives.
 pytest
 ```
 
-78 tests against a real PostgreSQL database (`TEST_DATABASE_URL`, default
+82 tests against a real PostgreSQL database (`TEST_DATABASE_URL`, default
 `nnneva_test`) rather than SQLite — the app uses Postgres enums and
 `NULLS LAST` ordering, and an in-memory stand-in would pass tests the real
 deployment fails.

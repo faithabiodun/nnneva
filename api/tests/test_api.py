@@ -77,7 +77,7 @@ def test_one_user_cannot_read_or_change_anothers_records(client, signed_up):
     ).json()
     task_id = client.get("/tasks", headers=faith).json()[0]["id"]
     memory_id = client.get("/memory", headers=faith).json()[0]["id"]
-    appointment_id = client.get("/appointments", headers=faith).json()[0]["id"]
+    appointment_id = client.get("/appointments", headers=faith).json()["upcoming"][0]["id"]
     approval_id = run["approvals"][0]["id"]
 
     amina = _second_user(client)
@@ -156,3 +156,11 @@ def test_profile_updates_persist(client, signed_up):
     assert updated["trusted_contact"]["permissions"]["test_results"] is True
 
     assert client.get("/profile", headers=signed_up).json()["retention"] == "3 months"
+
+
+def test_appointments_are_split_by_the_server_clock(client, signed_up):
+    body = client.get("/appointments", headers=signed_up).json()
+    assert set(body) == {"upcoming", "past"}
+    # The fixture's only appointment is two days out.
+    assert len(body["upcoming"]) == 1
+    assert body["past"] == []

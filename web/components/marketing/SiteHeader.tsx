@@ -33,7 +33,7 @@ export function SiteHeader() {
             Log in
           </Link>
           <Link
-            href="/onboarding"
+            href="/signup"
             className="rounded-pill bg-pink px-4 py-2.5 text-[13.5px] font-medium whitespace-nowrap text-white shadow-[0_6px_18px_rgba(214,43,96,0.24)] transition-colors hover:bg-pink-deep sm:px-5 sm:py-[11px] sm:text-[14.5px]"
           >
             Start with Nnneva

@@ -241,6 +241,22 @@ def _run_bedrock(box: T.Toolbox, message: str, settings, screening: Screening) -
             reason=reason, fire_at=fire_at, task_id=task_id or None
         )
 
+    @tool(name="create_appointment")
+    def _appointment(
+        starts_at: str,
+        title: str = "Antenatal review",
+        location: str = "",
+        clinician: str = "",
+    ) -> dict:
+        """Record an appointment the user has told you about. starts_at is
+        ISO-8601. Place and clinician default to her stored profile."""
+        return bound("create_appointment")(
+            starts_at=starts_at,
+            title=title,
+            location=location or None,
+            clinician=clinician or None,
+        )
+
     @tool(name="create_appointment_preparation")
     def _prep(
         questions: list[str] | None = None,
@@ -308,7 +324,7 @@ def _run_bedrock(box: T.Toolbox, message: str, settings, screening: Screening) -
         system_prompt=SYSTEM_PROMPT,
         tools=[
             _context, _safety, _create_task, _update_task,
-            _reminder, _prep, _memory, _share,
+            _reminder, _appointment, _prep, _memory, _share,
         ],
         hooks=[SafetySpine(screening, box)],
         callback_handler=None,  # no stdout streaming; the API returns the result

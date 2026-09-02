@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { signUp } from "@/app/actions/auth";
+import { AuthForm } from "@/components/auth/AuthForm";
 import { AuthShell, Divider, GoogleGlyph } from "@/components/auth/AuthShell";
 
 export const metadata = { title: "Create your account" };
@@ -17,47 +19,34 @@ export default function SignUpPage() {
           Two minutes of setup, then Nnneva remembers.
         </p>
 
-        <Link
-          href="/onboarding"
-          className="flex w-full items-center justify-center gap-[11px] rounded-md bg-white py-3.5 text-[14.5px] text-ink-2 transition-colors hover:bg-surface"
+        {/* Held for when OAuth is wired. Disabled rather than pointing at a
+            route that cannot create an account. */}
+        <button
+          type="button"
+          disabled
+          className="flex w-full cursor-not-allowed items-center justify-center gap-[11px] rounded-md bg-white py-3.5 text-[14.5px] text-muted-2 opacity-60"
         >
           <GoogleGlyph />
-          Sign up with Google
-        </Link>
+          Google sign-up coming soon
+        </button>
 
         <Divider label="or use your email" dark />
 
-        <form action="/onboarding" className="flex flex-col gap-3.5">
-          {[
-            { label: "Full name", name: "name", type: "text", placeholder: "Faith Adeyemi", autoComplete: "name" },
-            { label: "Email", name: "email", type: "email", placeholder: "you@email.com", autoComplete: "email" },
+        <AuthForm
+          action={signUp}
+          submitLabel="Create account"
+          dark
+          fields={[
+            { name: "full_name", label: "Full name", type: "text", autoComplete: "name" },
+            { name: "email", label: "Email", type: "email", autoComplete: "email" },
             {
-              label: "Password",
               name: "password",
+              label: "Password",
               type: "password",
-              placeholder: "At least 8 characters",
               autoComplete: "new-password",
             },
-          ].map((f) => (
-            <label key={f.name} className="block">
-              <span className="mb-[7px] block text-[12.5px] text-green-soft">{f.label}</span>
-              <input
-                type={f.type}
-                name={f.name}
-                placeholder={f.placeholder}
-                autoComplete={f.autoComplete}
-                className="w-full rounded-md bg-white/8 px-4 py-3.5 text-[14.5px] text-white outline-none placeholder:text-green-mid"
-              />
-            </label>
-          ))}
-
-          <button
-            type="submit"
-            className="mt-2 w-full rounded-md bg-pink py-3.5 text-[15px] font-medium text-white transition-colors hover:bg-pink-deep"
-          >
-            Create account
-          </button>
-        </form>
+          ]}
+        />
 
         <p className="mt-5 text-caption leading-relaxed text-green-mid">
           Nnneva stores only what it needs to help you coordinate. Health details are never shared

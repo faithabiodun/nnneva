@@ -6,21 +6,30 @@ from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 
 from app.deps import CurrentUser, DbSession
-from app.models import Appointment, AppointmentQuestion, PreparationItem
-from app.schemas import AppointmentOut, QuestionIn, QuestionOut
+from app.models import Appointment, AppointmentQuestion, PreparationItem, utcnow
+from app.schemas import AppointmentOut, AppointmentsOut, QuestionIn, QuestionOut
 
 router = APIRouter(prefix="/appointments", tags=["appointments"])
 
 
-@router.get("", response_model=list[AppointmentOut])
-def list_appointments(user: CurrentUser, db: DbSession) -> list[Appointment]:
-    return list(
+@router.get("", response_model=AppointmentsOut)
+def list_appointments(user: CurrentUser, db: DbSession) -> AppointmentsOut:
+    now = utcnow()
+    upcoming = list(
         db.scalars(
             select(Appointment)
-            .where(Appointment.user_id == user.id)
+            .where(Appointment.user_id == user.id, Appointment.starts_at >= now)
+            .order_by(Appointment.starts_at)
+        ).all()
+    )
+    past = list(
+        db.scalars(
+            select(Appointment)
+            .where(Appointment.user_id == user.id, Appointment.starts_at < now)
             .order_by(Appointment.starts_at.desc())
         ).all()
     )
+    return AppointmentsOut(upcoming=upcoming, past=past)
 
 
 def _owned(appointment_id: str, user, db) -> Appointment:

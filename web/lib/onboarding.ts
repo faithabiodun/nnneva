@@ -43,7 +43,7 @@ export const STEPS: Step[] = [
     noteFg: "#0B2C22",
     skip: "I will decide later",
     options: [
-      { label: "Lagoon Antenatal Clinic", sub: "Adeola Odeku St, Victoria Island · 6.4 km" },
+      { label: "An antenatal clinic", sub: "Standalone or attached to a hospital" },
       { label: "A hospital", sub: "Public or private" },
       { label: "A private midwife", sub: "Home or clinic visits" },
       { label: "Not decided yet", sub: "Nnneva will help you choose" },
@@ -73,7 +73,7 @@ export const STEPS: Step[] = [
     noteBg: "#E4F1EB",
     noteFg: "#0B2C22",
     skip: "It is just me for now",
-    options: [{ label: "Chidi Adeyemi", sub: "Partner · +234 801 000 0000" }, { label: "Add someone else" }],
+    options: [],
   },
   {
     kind: "choice",

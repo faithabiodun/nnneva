@@ -299,7 +299,62 @@ def schedule_reminder(
 
 
 # ---------------------------------------------------------------------------
-# 6. create_appointment_preparation
+# 6. create_appointment
+# ---------------------------------------------------------------------------
+
+
+def create_appointment(
+    box: Toolbox,
+    starts_at: str,
+    title: str = "Antenatal review",
+    location: str | None = None,
+    clinician: str | None = None,
+) -> dict[str, Any]:
+    """Record an appointment the user has told Nnneva about.
+
+    Without this the agent could prepare for a visit but never learn one exists,
+    which breaks the blueprint's own opening line — "I have an antenatal
+    appointment next Thursday" has to leave something behind.
+
+    Place and clinician default to the stored profile so she is not asked for
+    what Nnneva already knows (§02).
+    """
+    when = _as_datetime(starts_at)
+    if when is None:
+        box.record(
+            "create_appointment",
+            f"Could not read the appointment time “{starts_at}”",
+            result=ActionResult.failed,
+            result_label="Failed",
+        )
+        return {"error": "unreadable time"}
+
+    profile = box.user.profile
+    appointment = Appointment(
+        user_id=box.user.id,
+        title=title.strip() or "Antenatal review",
+        starts_at=when,
+        location=location or (profile.care_location if profile else None),
+        clinician=clinician or (profile.clinician if profile else None),
+    )
+    box.db.add(appointment)
+    box.db.flush()
+
+    box.record(
+        "create_appointment",
+        f"Added {appointment.title} on {when:%A %-d %B} at {when:%H:%M}",
+        result_label="Created",
+        detail=appointment.location or "",
+    )
+    return {
+        "id": appointment.id,
+        "title": appointment.title,
+        "starts_at": when.isoformat(),
+    }
+
+
+# ---------------------------------------------------------------------------
+# 7. create_appointment_preparation
 # ---------------------------------------------------------------------------
 
 
@@ -370,7 +425,7 @@ def create_appointment_preparation(
 
 
 # ---------------------------------------------------------------------------
-# 7. save_memory
+# 8. save_memory
 # ---------------------------------------------------------------------------
 
 
@@ -389,7 +444,7 @@ def save_memory(box: Toolbox, fact: str, kind: str = "Pregnancy context") -> dic
 
 
 # ---------------------------------------------------------------------------
-# 8. share_with_contact — the confirmation gate
+# 9. share_with_contact — the confirmation gate
 # ---------------------------------------------------------------------------
 
 
@@ -449,6 +504,7 @@ TOOL_FUNCTIONS = {
     "create_task": create_task,
     "update_task": update_task,
     "schedule_reminder": schedule_reminder,
+    "create_appointment": create_appointment,
     "create_appointment_preparation": create_appointment_preparation,
     "save_memory": save_memory,
     "share_with_contact": share_with_contact,
