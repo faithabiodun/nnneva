@@ -1,54 +1,72 @@
 # Nnneva
 
-**Your maternal-care agent.** An AI agent that manages the work around your
-pregnancy, so you can focus on what truly matters.
+**Your maternal-care agent.** Nnneva takes the repetitive coordination work out
+of pregnancy so mothers can focus on themselves and their baby.
 
-This repository holds the Nnneva landing experience: a full-bleed hero built
-around a real photograph, with the product's tools surfaced as live, openable
-panels rather than screenshots.
+It does not try to be a doctor. It remembers context, turns a goal stated in
+plain language into tasks and reminders, acts through tools with confirmation
+where confirmation is due, and escalates when a situation needs a professional.
+
+> Remember · Plan · Act · Monitor · Escalate
+
+## Repository layout
+
+| Path | What it is |
+| --- | --- |
+| `web/` | Next.js + Tailwind front end |
+| `api/` | FastAPI service, the Strands agent, and its tools |
+
+## Architecture
+
+```
+        Nnneva web app (Next.js)
+                  │
+                  ▼
+             FastAPI API
+                  │
+        ┌─────────┴─────────┐
+        ▼                   ▼
+   Strands agent        PostgreSQL
+        │                   ▲
+   ┌────┼────┐              │
+   ▼    ▼    ▼              │
+Memory Planner Safety ──────┘
+        │
+        ▼
+      Tools
+   ┌────┼──────────┐
+   ▼    ▼          ▼
+ Tasks Reminders  Appointment prep
+```
 
 ## Running it
 
+Front end:
+
 ```bash
-cd web
-npm install
-npm run dev      # http://localhost:3000
+cd web && npm install && npm run dev      # http://localhost:3000
 ```
 
-| Command | What it does |
-| --- | --- |
-| `npm run dev` | Vite dev server on port 3000 |
-| `npm run build` | Production build to `dist/` |
-| `npm run preview` | Serve the production build |
-| `npm run lint` | TypeScript check (`tsc --noEmit`) |
+API and agent:
 
-## What's in it
+```bash
+cd api
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env                      # DATABASE_URL + AWS credentials
+uvicorn app.main:app --reload --port 8000 # http://localhost:8000/docs
+```
 
-The page renders three purpose-built hero layouts — desktop, tablet and mobile —
-each composed for its own width rather than reflowed from one another, and five
-panels the header and hero open:
+## Guardrails
 
-| Panel | Opens from |
-| --- | --- |
-| Week tracker — week 32 growth, milestones and tips | *My Journey*, and the week card |
-| Hospital bag — packing checklist by category | *Resources*, and the hospital-bag card |
-| Tool drawer — reminders, checklists, family, expenses | *Tasks*, *Health*, *Family*, and the quick-tool row |
-| Get started | The header and hero calls to action |
-| Notifications | The header bell |
+These are product requirements, not disclaimers:
 
-## Stack
-
-Vite 6 · React 19 · TypeScript · Tailwind CSS v4 · lucide-react
-
-Type faces are Plus Jakarta Sans for interface text, DM Serif Display for the
-headline, and Caveat for the handwritten note, loaded from Google Fonts in
-`index.html`.
-
-## Assets
-
-The three photographs in `src/assets/images/` are bundled and served from the
-build. The profile and social-proof avatars are hot-linked from Unsplash, so
-they need outbound network access to render.
+- No diagnosis, no prescription, no replacement of clinical judgement.
+- No consequential external action without the user's confirmation.
+- Nothing shared with a trusted contact unless the user permits it explicitly.
+- Every meaningful agent action is visible in an activity history.
+- When a potential emergency is detected, normal automation stops and safe
+  escalation takes priority.
 
 ## Licence
 

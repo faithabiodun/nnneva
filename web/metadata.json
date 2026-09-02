@@ -1,6 +1,0 @@
-{
-  "name": "Nnneva",
-  "description": "Nnneva - Your Maternal-Care Agent. AI-powered pregnancy management and motherhood support landing page.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
