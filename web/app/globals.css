@@ -244,3 +244,60 @@
   .animate-rise, .animate-fade, .animate-pulse-soft { animation: none; }
   *, *::before, *::after { transition-duration: 1ms !important; }
 }
+
+/* -------------------------------------------------------------------------- */
+/* Marketing page                                                             */
+/*                                                                            */
+/* The "What Nnneva does" rail is a CSS-only carousel: six steps over a 30s    */
+/* loop, each staggered by 5s, so the left rail and the right panel advance    */
+/* together without a line of JavaScript.                                      */
+
+@keyframes nv-rail-text {
+  0%, 16.6% { color: var(--color-ink); }
+  17.2%, 100% { color: var(--color-faint); }
+}
+
+@keyframes nv-rail-bar {
+  0% { width: 0%; }
+  16.6% { width: 100%; }
+  17%, 100% { width: 0%; }
+}
+
+@keyframes nv-panel {
+  0%, 16.6% { opacity: 1; transform: none; pointer-events: auto; }
+  18%, 100% { opacity: 0; transform: translateY(10px); pointer-events: none; }
+}
+
+@keyframes nv-grow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes nv-bob {
+  0%, 100% { transform: translateY(0); opacity: 0.65; }
+  50% { transform: translateY(7px); opacity: 1; }
+}
+
+.nv-rail-text,
+.nv-rail-bar,
+.nv-panel {
+  animation-duration: 30s;
+  animation-iteration-count: infinite;
+  animation-fill-mode: both;
+}
+
+.nv-rail-text { animation-name: nv-rail-text; animation-timing-function: linear; }
+.nv-rail-bar { animation-name: nv-rail-bar; animation-timing-function: linear; }
+.nv-panel { animation-name: nv-panel; animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+
+.animate-bob { animation: nv-bob 2.6s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  /* With the cycle stopped, every panel would stack on top of the others, so
+     the first is pinned open and the rest are hidden outright. */
+  .nv-rail-text, .nv-rail-bar, .nv-panel, .animate-bob { animation: none; }
+  .nv-panel { opacity: 0; pointer-events: none; }
+  .nv-panel[data-step="0"] { opacity: 1; pointer-events: auto; }
+  .nv-rail-text { color: var(--color-faint); }
+  .nv-rail-text[data-step="0"] { color: var(--color-ink); }
+}

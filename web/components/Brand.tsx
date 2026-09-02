@@ -11,15 +11,23 @@ import logo from "@/public/nnneva-logo.png";
  */
 export function Mark({ size = 40, className = "" }: { size?: number; className?: string }) {
   return (
-    <Image
-      src={logo}
-      alt=""
-      width={size}
-      height={size}
-      sizes={`${size}px`}
-      priority
-      className={`shrink-0 rounded-full ${className}`}
-    />
+    <span
+      className={`relative block shrink-0 overflow-hidden rounded-full bg-white ${className}`}
+      style={{ width: size, height: size }}
+    >
+      {/* The source PNG carries its own whitespace margin, so it is scaled past
+          the frame and pulled back — the same 138% / -19% crop the design uses —
+          otherwise the mark floats small inside its circle. */}
+      <Image
+        src={logo}
+        alt=""
+        width={size}
+        height={size}
+        sizes={`${size}px`}
+        priority
+        className="block h-[138%] w-[138%] max-w-none -translate-x-[13.8%] -translate-y-[13.8%]"
+      />
+    </span>
   );
 }
 
