@@ -123,16 +123,28 @@ settings so there is one source of truth for where the database lives.
 
 ## Deploying
 
-`../deploy/aws-apprunner.sh` deploys this service to AWS App Runner, which
-builds it straight from GitHub with its managed Python runtime — no Dockerfile,
-no image registry. Bedrock access comes from a scoped IAM instance role rather
-than access keys in the environment, and the script sets `AGENT_ENGINE=bedrock`
-because `auto` only recognises explicit keys and would otherwise fall back to
-the rule-based planner without saying so.
+Two scripts, because they need different things. `../deploy/push-image.sh` builds
+the image and pushes it to ECR, and needs a Docker daemon.
+`../deploy/aws-ecs-express.sh` deploys it to Amazon ECS Express Mode, and needs
+only the AWS CLI.
+
+Express Mode is AWS's replacement for App Runner, which closed to new customers
+on 30 April 2026. It manages the load balancer, TLS and autoscaling itself.
+
+Bedrock access comes from the ECS task role rather than access keys in the
+environment, and the deploy sets `AGENT_ENGINE=bedrock` because `auto` only
+recognises explicit keys and would otherwise fall back to the rule-based planner
+without saying so.
 
 Required environment when deployed: `DATABASE_URL`, `SECRET_KEY` (≥32 bytes),
-and `WEB_ORIGIN` so CORS admits the web app. Run `alembic upgrade head` on
-release — the deploy script's start command already does.
+and `WEB_ORIGIN` so CORS admits the web app.
+
+The `Dockerfile` builds from AWS's ECR Public mirror of the official Python image
+rather than Docker Hub, which rate-limits anonymous pulls per source IP and fails
+builds on shared CI egress. `push-image.sh` builds `linux/amd64` explicitly:
+Fargate runs x86_64 unless configured otherwise, and an arm64 image built on
+Apple Silicon starts, dies with an exec format error, and surfaces as a failing
+health check that never mentions architecture.
 
 Migration `3a1810805e49` matters on managed Postgres that ships `anon` and
 `authenticated` roles, such as Supabase: it revokes their default grants on

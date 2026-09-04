@@ -98,36 +98,49 @@ browser ──▶ Next.js server ──(bearer token)──▶ FastAPI ──▶
 ```
    web (Next.js)          API (FastAPI + Strands)        data
    ─────────────          ───────────────────────        ────
-   Pxxl or Vercel   ──▶   AWS App Runner          ──▶   Postgres
-                            │                            (managed)
-                            └──▶ Bedrock (IAM role)
+   Pxxl or Vercel   ──▶   ECS Express Mode        ──▶   Postgres
+                            │  (image from ECR)          (managed)
+                            └──▶ Bedrock (task role)
 ```
 
-### The API — AWS App Runner
+### The API — Amazon ECS Express Mode
 
-`deploy/aws-apprunner.sh` does the whole thing. App Runner builds straight from
-GitHub with its managed Python runtime, so there is no Dockerfile, no image
-registry and no build host.
+App Runner closed to new customers on 30 April 2026. Express Mode is AWS's named
+replacement: it provisions the load balancer, target group, security groups, TLS
+certificate and autoscaling policy itself, so there is no VPC wiring and no ALB
+to pay for separately.
+
+It runs a container image, so deployment is two steps. The first needs Docker;
+the second needs only the AWS CLI.
 
 ```bash
-export DATABASE_URL="postgresql+psycopg://..."   # managed Postgres
+# 1. Build and push. From a machine with a Docker daemon.
+./deploy/push-image.sh
+
+# 2. Deploy. From anywhere.
+export DATABASE_URL="postgresql+psycopg://..."
 export SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
-export WEB_ORIGIN="https://your-web-app"         # for CORS
-./deploy/aws-apprunner.sh
+export WEB_ORIGIN="https://your-web-app"
+./deploy/aws-ecs-express.sh
 ```
 
-The script creates a scoped IAM instance role so the running service reaches
-Bedrock **without any access keys in its environment**, sets a `/health` check,
-runs `alembic upgrade head` on each release, and waits for the service to come
-up before printing the URL. It is idempotent: run it again to update.
+The deploy creates three IAM roles with distinct jobs — infrastructure (lets ECS
+manage the load balancer), execution (lets the agent pull the image and write
+logs), and task (what the running container may do: invoke Bedrock) — then the
+cluster, log group and service, and waits for a public endpoint before printing
+it. It is idempotent: re-run it to roll out a new image.
 
-One step it cannot do for you is the App Runner **GitHub connection** — that is
-an OAuth handshake, so create it once in the console (App Runner → GitHub
-connections → Add new) and the script will find it.
+**No AWS key is ever set on the service.** Bedrock access comes from the task
+role. The only secrets the deploy handles are `DATABASE_URL` and `SECRET_KEY`,
+both read from your shell.
 
-It sets `AGENT_ENGINE=bedrock` rather than `auto` deliberately. `auto` decides
-by looking for explicit access keys, and a role-based deployment has none, so
-`auto` would quietly serve the rule-based planner. `bedrock` fails loudly.
+It sets `AGENT_ENGINE=bedrock` rather than `auto` deliberately. `auto` decides by
+looking for explicit access keys, and a role-based deployment has none, so `auto`
+would quietly serve the rule-based planner. `bedrock` fails loudly.
+
+The image runs `alembic upgrade head` on boot. That is fine for one task; past a
+single instance, move it to a one-off invocation or concurrent starts race for
+the version table.
 
 ### The database
 
@@ -151,7 +164,7 @@ pxxl login --api-key <your key>
 cd web && pxxl deploy
 ```
 
-Set `API_BASE_URL` in the Pxxl dashboard to the App Runner URL. It is
+Set `API_BASE_URL` in the Pxxl dashboard to the Express Mode URL. It is
 deliberately not in the repo: `.env*` is excluded from the upload, and the local
 value points at `localhost:8000`.
 
