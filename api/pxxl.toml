@@ -14,6 +14,9 @@ deployEnvironment = "prod"
 
 language = "python"
 installCommand = "pip install -r requirements.txt"
-startCommand = "uvicorn app.main:app --host 0.0.0.0 --port 8000"
+# Migrations run on boot, as they do in the Dockerfile. Fine for one instance;
+# past that, move them to a one-off run or concurrent starts race for the
+# Alembic version table.
+startCommand = 'sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"'
 entryFile = "app/main.py"
 port = 8000
