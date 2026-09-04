@@ -98,9 +98,9 @@ browser ──▶ Next.js server ──(bearer token)──▶ FastAPI ──▶
 ```
    web (Next.js)          API (FastAPI + Strands)        data
    ─────────────          ───────────────────────        ────
-   Pxxl or Vercel   ──▶   ECS Express Mode        ──▶   Postgres
-                            │  (image from ECR)          (managed)
-                            └──▶ Bedrock (task role)
+   Pxxl             ──▶   Pxxl or ECS Express     ──▶   Pxxl Postgres
+                            │                            (or any managed)
+                            └──▶ Bedrock
 ```
 
 ### The API — Amazon ECS Express Mode
@@ -147,12 +147,28 @@ The image runs `alembic upgrade head` on boot. That is fine for one task; past a
 single instance, move it to a one-off invocation or concurrent starts race for
 the version table.
 
-### The database
+### The database — Pxxl Postgres
 
-Any managed Postgres. Take the connection string and swap `postgresql://` for
-`postgresql+psycopg://` so SQLAlchemy uses psycopg 3.
+Any managed Postgres works. Pxxl provisions one directly:
 
-If you use Supabase, note that it grants its `anon` and `authenticated` roles
+```bash
+pxxl db create --name nnneva-db --type postgres
+pxxl db get nnneva-db          # prints Database URL, user, password, host, port
+```
+
+Take the **Database URL** row and swap `postgresql://` for
+`postgresql+psycopg://` so SQLAlchemy uses psycopg 3. That is the only edit the
+URL needs. Then create the schema from any machine that can reach the database:
+
+```bash
+cd api
+export DATABASE_URL="postgresql+psycopg://..."
+alembic upgrade head
+```
+
+Set the same `DATABASE_URL` as an environment variable on the API service.
+
+If you use Supabase instead, note that it grants its `anon` and `authenticated` roles
 full access to every table in `public` by default, so anyone holding the
 publishable key could read every password hash and pregnancy profile. Nnneva
 does not use PostgREST — it connects directly as the owning role — so migration
@@ -169,13 +185,30 @@ pxxl login --api-key <your key>
 cd web && pxxl deploy
 ```
 
-Set `API_BASE_URL` in the Pxxl dashboard to the Express Mode URL. It is
+Set `API_BASE_URL` in the Pxxl dashboard to the deployed API's URL. It is
 deliberately not in the repo: `.env*` is excluded from the upload, and the local
 value points at `localhost:8000`.
 
-The Pxxl CLI has no Python runtime — it detects `nextjs`, `vite`, `astro`, `go`
-and `static`, with no reference to `requirements.txt`, `uvicorn` or `gunicorn`
-anywhere in it — which is why the API goes to AWS instead.
+### The API on Pxxl — worth one attempt
+
+The Pxxl CLI cannot *detect* a Python project. Its `detectFramework` knows only
+JavaScript frameworks and `.php`, and `detectRuntime` returns exactly one of
+`php`, `node` or `static`; nothing in the CLI mentions `requirements.txt`,
+`uvicorn` or `gunicorn`.
+
+But detection is only a fallback. `language`, `installCommand`, `buildCommand`,
+`startCommand`, `entryFile` and `port` are read from `pxxl.toml` and forwarded
+to the builder verbatim — the CLI never checks them against its own lists. So
+[`api/pxxl.toml`](api/pxxl.toml) asks the builder for Python directly:
+
+```bash
+cd api && pxxl deploy
+```
+
+Whether that works depends on the Pxxl builder, not on the CLI, so it is a
+question only a real deploy answers. If the builder rejects `language =
+"python"`, the API needs a host with a Python runtime — ECS Express Mode above,
+or any Python host — and only the web app stays on Pxxl.
 
 ## Guardrails
 

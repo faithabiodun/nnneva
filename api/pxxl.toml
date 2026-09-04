@@ -1,0 +1,19 @@
+# Pxxl deployment config for the Nnneva API.
+#
+# The Pxxl CLI's own detection only knows node, php and static — it has no
+# Python detector. But `language`, `installCommand`, `buildCommand`,
+# `startCommand` and `entryFile` are passed straight through from this file to
+# the builder without the CLI validating them (see the /projects/spacedrop
+# form in @pxxlapp/pxxl). So this file asks the builder for Python directly.
+# If the builder rejects it, the API needs a host with a Python runtime and
+# only the web app stays on Pxxl.
+name = "nnneva-api"
+domainChoice = "pxxl.pro"
+environment = "production"
+deployEnvironment = "prod"
+
+language = "python"
+installCommand = "pip install -r requirements.txt"
+startCommand = "uvicorn app.main:app --host 0.0.0.0 --port 8000"
+entryFile = "app/main.py"
+port = 8000

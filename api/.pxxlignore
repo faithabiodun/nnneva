@@ -1,0 +1,24 @@
+.git
+.git/**
+
+# Never upload local secrets. DATABASE_URL, SECRET_KEY and the Bedrock
+# credentials are set as environment variables in the Pxxl dashboard.
+.env
+.env.*
+
+# Tests and local caches are not part of the deployed service.
+tests
+tests/**
+.pytest_cache
+.pytest_cache/**
+__pycache__
+**/__pycache__/**
+*.pyc
+.venv
+.venv/**
+
+*.log
+.config/pxxl
+.config/pxxl/**
+.pxxlignore
+pxxl-source.zip
