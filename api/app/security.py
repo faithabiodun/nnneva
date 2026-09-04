@@ -16,7 +16,12 @@ def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
 
-def verify_password(password: str, hashed: str) -> bool:
+def verify_password(password: str, hashed: str | None) -> bool:
+    # An account created through Google sign-in has no password hash. Treat that
+    # as "wrong password" rather than letting any string through — otherwise a
+    # Google-only account would be reachable from the password form.
+    if not hashed:
+        return False
     try:
         return bcrypt.checkpw(password.encode(), hashed.encode())
     except ValueError:

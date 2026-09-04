@@ -210,6 +210,34 @@ question only a real deploy answers. If the builder rejects `language =
 "python"`, the API needs a host with a Python runtime — ECS Express Mode above,
 or any Python host — and only the web app stays on Pxxl.
 
+## Google sign-in
+
+Optional. With `GOOGLE_CLIENT_ID` unset the button still renders and explains
+that it is not configured, and `POST /auth/google` returns 501.
+
+The work is split so that no tier has to trust another:
+
+1. `/auth/google` (web) redirects to Google with a random `state`, kept in a
+   ten-minute httpOnly cookie.
+2. `/auth/google/callback` (web) checks `state` in constant time, then swaps the
+   code for an ID token. This step needs the client secret, which is why it
+   lives in the web tier rather than the API.
+3. `POST /auth/google` (API) **verifies that ID token itself** against Google's
+   published keys — signature, issuer, expiry, and `aud` pinned to our client
+   id. It does not accept an email the web tier merely asserts; if it did,
+   anything that could reach the API could sign in as anyone.
+4. The API finds or creates the user and returns an ordinary Nnneva session
+   token, which becomes the same httpOnly cookie the password flow sets.
+
+Accounts created this way have `password_hash = NULL`. A placeholder hash would
+have been worse — one known string would open every Google account through the
+password form — so `verify_password` returns False before reaching bcrypt.
+Signing in with Google using an address that already has a password account
+signs into that account and leaves its password intact.
+
+Set the **same** `GOOGLE_CLIENT_ID` on both tiers, or every token fails its
+audience check.
+
 ## Guardrails
 
 These are product requirements, not disclaimers:

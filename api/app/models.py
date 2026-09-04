@@ -128,7 +128,10 @@ class User(Base, TimestampMixin):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
-    password_hash: Mapped[str] = mapped_column(String(255))
+    # Nullable: an account created through Google sign-in has no password.
+    # app/security.py refuses to verify against a missing hash, so such a row
+    # cannot be logged into with the password form.
+    password_hash: Mapped[str | None] = mapped_column(String(255), default=None)
     full_name: Mapped[str] = mapped_column(String(120))
     phone: Mapped[str | None] = mapped_column(String(40), default=None)
 

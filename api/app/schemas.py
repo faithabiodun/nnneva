@@ -27,6 +27,12 @@ class LoginIn(BaseModel):
     password: str
 
 
+class GoogleAuthIn(BaseModel):
+    """The ID token the web tier received from Google's token endpoint."""
+
+    id_token: str = Field(min_length=1)
+
+
 class TokenOut(BaseModel):
     access_token: str
     token_type: str = "bearer"

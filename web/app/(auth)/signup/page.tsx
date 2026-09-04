@@ -19,16 +19,15 @@ export default function SignUpPage() {
           Two minutes of setup, then Nnneva remembers.
         </p>
 
-        {/* Held for when OAuth is wired. Disabled rather than pointing at a
-            route that cannot create an account. */}
-        <button
-          type="button"
-          disabled
-          className="flex w-full cursor-not-allowed items-center justify-center gap-[11px] rounded-md bg-white py-3.5 text-[14.5px] text-muted-2 opacity-60"
+        {/* Same route as login: Google does not distinguish the two, so the
+            API signs in an existing account or creates one. */}
+        <a
+          href="/auth/google"
+          className="flex w-full items-center justify-center gap-[11px] rounded-md bg-white py-3.5 text-[14.5px] text-ink transition-colors hover:bg-surface"
         >
           <GoogleGlyph />
-          Google sign-up coming soon
-        </button>
+          Continue with Google
+        </a>
 
         <Divider label="or use your email" dark />
 

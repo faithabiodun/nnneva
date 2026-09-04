@@ -31,6 +31,15 @@ class Settings(BaseSettings):
 
     web_origin: str = "http://localhost:3000"
 
+    # Google sign-in. Only the client id is needed here: the API never talks to
+    # Google's token endpoint, it only verifies the ID token the web tier got
+    # back, so it never needs the client secret. Empty disables the route.
+    google_client_id: str = ""
+
+    @property
+    def google_enabled(self) -> bool:
+        return bool(self.google_client_id)
+
     @property
     def has_aws_credentials(self) -> bool:
         """Whether explicit AWS access keys were supplied to the process.
