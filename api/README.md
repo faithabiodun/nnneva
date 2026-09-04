@@ -121,6 +121,27 @@ explicit answer, every time.
 Migrations are Alembic; `alembic/env.py` reads `DATABASE_URL` from the app
 settings so there is one source of truth for where the database lives.
 
+## Deploying
+
+`../deploy/aws-apprunner.sh` deploys this service to AWS App Runner, which
+builds it straight from GitHub with its managed Python runtime — no Dockerfile,
+no image registry. Bedrock access comes from a scoped IAM instance role rather
+than access keys in the environment, and the script sets `AGENT_ENGINE=bedrock`
+because `auto` only recognises explicit keys and would otherwise fall back to
+the rule-based planner without saying so.
+
+Required environment when deployed: `DATABASE_URL`, `SECRET_KEY` (≥32 bytes),
+and `WEB_ORIGIN` so CORS admits the web app. Run `alembic upgrade head` on
+release — the deploy script's start command already does.
+
+Migration `3a1810805e49` matters on managed Postgres that ships `anon` and
+`authenticated` roles, such as Supabase: it revokes their default grants on
+`public`, blocks future ones, and enables RLS on every table. Without it anyone
+holding the publishable key can read every password hash and pregnancy profile.
+The API is unaffected — it connects as the role that owns the tables, and owners
+bypass RLS. On a database without those roles the revokes are skipped and only
+RLS is applied.
+
 ## Tests
 
 ```bash

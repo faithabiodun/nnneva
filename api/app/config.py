@@ -33,10 +33,18 @@ class Settings(BaseSettings):
 
     @property
     def has_aws_credentials(self) -> bool:
-        """Whether AWS credentials were supplied to the process.
+        """Whether explicit AWS access keys were supplied to the process.
 
-        Presence is not reachability — credentials can be present and still be
+        Presence is not reachability — keys can be present and still be
         rejected by Bedrock — so this only decides whether it is worth trying.
+
+        It deliberately does not consult boto3's wider credential chain. That
+        means a deployment whose credentials come from an IAM role rather than
+        keys (App Runner, ECS, EC2) reads as "no credentials" here, so
+        AGENT_ENGINE must be set to "bedrock" explicitly there. deploy/
+        aws-apprunner.sh does exactly that. Probing the chain instead would
+        make startup wait on an instance-metadata timeout on every machine
+        that has no credentials at all, including developer laptops and CI.
         """
         return bool(self.aws_access_key_id and self.aws_secret_access_key)
 

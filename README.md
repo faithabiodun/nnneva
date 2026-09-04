@@ -95,34 +95,69 @@ browser ──▶ Next.js server ──(bearer token)──▶ FastAPI ──▶
 
 ## Deploying
 
-The two halves deploy to different places, because the Pxxl CLI has no Python
-runtime — it detects `nextjs`, `vite`, `astro`, `go` and `static`, and there is
-no reference to `requirements.txt`, `uvicorn` or `gunicorn` anywhere in it.
+```
+   web (Next.js)          API (FastAPI + Strands)        data
+   ─────────────          ───────────────────────        ────
+   Pxxl or Vercel   ──▶   AWS App Runner          ──▶   Postgres
+                            │                            (managed)
+                            └──▶ Bedrock (IAM role)
+```
 
-**The web app — Pxxl.** `web/pxxl.toml` and `web/.pxxlignore` are committed, so
-this is the whole flow:
+### The API — AWS App Runner
+
+`deploy/aws-apprunner.sh` does the whole thing. App Runner builds straight from
+GitHub with its managed Python runtime, so there is no Dockerfile, no image
+registry and no build host.
+
+```bash
+export DATABASE_URL="postgresql+psycopg://..."   # managed Postgres
+export SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
+export WEB_ORIGIN="https://your-web-app"         # for CORS
+./deploy/aws-apprunner.sh
+```
+
+The script creates a scoped IAM instance role so the running service reaches
+Bedrock **without any access keys in its environment**, sets a `/health` check,
+runs `alembic upgrade head` on each release, and waits for the service to come
+up before printing the URL. It is idempotent: run it again to update.
+
+One step it cannot do for you is the App Runner **GitHub connection** — that is
+an OAuth handshake, so create it once in the console (App Runner → GitHub
+connections → Add new) and the script will find it.
+
+It sets `AGENT_ENGINE=bedrock` rather than `auto` deliberately. `auto` decides
+by looking for explicit access keys, and a role-based deployment has none, so
+`auto` would quietly serve the rule-based planner. `bedrock` fails loudly.
+
+### The database
+
+Any managed Postgres. Take the connection string and swap `postgresql://` for
+`postgresql+psycopg://` so SQLAlchemy uses psycopg 3.
+
+If you use Supabase, note that it grants its `anon` and `authenticated` roles
+full access to every table in `public` by default, so anyone holding the
+publishable key could read every password hash and pregnancy profile. Nnneva
+does not use PostgREST — it connects directly as the owning role — so migration
+`3a1810805e49` revokes those grants, blocks future ones, and enables RLS on
+every table. It is a no-op on a database without those roles.
+
+### The web app — Pxxl
+
+`web/pxxl.toml` and `web/.pxxlignore` are committed:
 
 ```bash
 npm install -g @pxxlapp/pxxl
-pxxl login --api-key <your key>     # from the Pxxl dashboard
+pxxl login --api-key <your key>
 cd web && pxxl deploy
 ```
 
-Set `API_BASE_URL` in the Pxxl dashboard to the deployed API's origin. It is
+Set `API_BASE_URL` in the Pxxl dashboard to the App Runner URL. It is
 deliberately not in the repo: `.env*` is excluded from the upload, and the local
 value points at `localhost:8000`.
 
-**The API — anywhere that runs Python and Postgres.** It is an ordinary ASGI
-app with no platform-specific code:
-
-```bash
-uvicorn app.main:app --host 0.0.0.0 --port $PORT
-```
-
-Required environment: `DATABASE_URL`, `SECRET_KEY`, and `WEB_ORIGIN` set to the
-deployed web app's origin so CORS admits it. Run `alembic upgrade head` on
-release. `AGENT_ENGINE` and the AWS variables are optional — see
-[`api/README.md`](api/README.md).
+The Pxxl CLI has no Python runtime — it detects `nextjs`, `vite`, `astro`, `go`
+and `static`, with no reference to `requirements.txt`, `uvicorn` or `gunicorn`
+anywhere in it — which is why the API goes to AWS instead.
 
 ## Guardrails
 

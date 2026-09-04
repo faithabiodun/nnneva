@@ -52,9 +52,14 @@ def test_the_core_workflow(client, signed_up):
     assert len(tasks) >= 4
     assert any("Fast from 21:00" in t["title"] for t in tasks)
 
+    # She named a Thursday, and the fixture's visit is two days out — which of
+    # the two comes first depends on today's weekday. Assert the invariant that
+    # matters (the questions were saved against a visit) rather than a position.
     appointments = client.get("/appointments", headers=headers).json()
-    assert len(appointments["upcoming"][0]["questions"]) >= 4
-    assert len(appointments["upcoming"][0]["preparation"]) >= 3
+    prepared = [a for a in appointments["upcoming"] if a["questions"]]
+    assert len(prepared) == 1, "exactly one visit should carry the prepared questions"
+    assert len(prepared[0]["questions"]) >= 4
+    assert len(prepared[0]["preparation"]) >= 3
 
     memories = client.get("/memory", headers=headers).json()
     assert any("Blood test" in m["fact"] for m in memories)
