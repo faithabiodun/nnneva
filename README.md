@@ -113,6 +113,11 @@ to pay for separately.
 It runs a container image, so deployment is two steps. The first needs Docker;
 the second needs only the AWS CLI.
 
+The deploying identity needs the permissions in
+[`deploy/iam-policy.json`](deploy/iam-policy.json) — the exact set these two
+scripts call, nothing more. IAM is scoped to `nnneva-ecs-*` and `PassRole` is
+conditioned to ECS, so the keys cannot hand those roles to anything else.
+
 ```bash
 # 1. Build and push. From a machine with a Docker daemon.
 ./deploy/push-image.sh
