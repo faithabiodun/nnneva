@@ -1,8 +1,9 @@
 # Versions verified against PyPI rather than recalled.
 
-# Agent — Strands Agents SDK, per Plan §09
+# Agent — Strands Agents SDK, per Plan §09.
+# strands-agents-tools is deliberately absent: nothing imports it, and it pulls
+# sympy, Pillow, aiohttp, watchdog and slack-bolt into a maternal-health API.
 strands-agents==1.54.0
-strands-agents-tools==0.8.7
 
 # API
 fastapi==0.141.1

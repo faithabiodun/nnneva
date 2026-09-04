@@ -2,8 +2,8 @@
 
 Each tool is a plain function taking a `Toolbox` plus its arguments, so it can
 be called directly by the deterministic planner and tested without a model. The
-`strands_tools()` factory wraps the same functions in `@tool` for the Bedrock
-path — there is one implementation, not two.
+Bedrock path in `runner.py` wraps these same functions in `@tool` — there is one
+implementation, not two.
 
 Every call goes through `Toolbox.record`, which writes a ToolAction row. That
 is why there is no `log_agent_action` tool: logging that depends on the model
