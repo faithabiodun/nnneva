@@ -1,4 +1,4 @@
-# AWS CodeBuild: build the API image, push it to ECR, and roll the ECS service.
+# AWS CodeBuild: build the web image, push it to ECR, and roll the ECS service.
 #
 # The deploy happens here rather than in a CodePipeline ECS action because that
 # action calls UpdateService, which does not apply to Express Gateway services —
@@ -8,7 +8,7 @@ version: 0.2
 
 env:
   variables:
-    IMAGE_REPO: nnneva-api
+    IMAGE_REPO: nnneva-web
     IMAGE_TAG: latest
     SERVICE_ARN: ""
 
@@ -25,7 +25,7 @@ phases:
     commands:
       # Fargate is x86_64; an arm64 image fails as a health-check failure that
       # never mentions architecture.
-      - docker build --platform linux/amd64 -t "$IMAGE_REPO:$IMAGE_TAG" api
+      - docker build --platform linux/amd64 -t "$IMAGE_REPO:$IMAGE_TAG" web
 
   post_build:
     commands:

@@ -1,0 +1,9 @@
+.git
+node_modules
+.next
+.turbo
+npm-debug.log
+# Never bake local secrets into an image. API_BASE_URL and the Supabase values
+# are set as environment variables on the service instead.
+.env
+.env.*

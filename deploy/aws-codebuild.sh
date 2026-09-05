@@ -26,16 +26,18 @@ ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text) \
   || die "AWS credentials are not valid."
 BUCKET="${BUILD_BUCKET:-nnneva-build-${ACCOUNT_ID}}"
 
-say "Packaging api/"
-ZIP=$(mktemp -d)/nnneva-api.zip
-# Tests, caches and local env never belong in the image context.
-( cd api && zip -qr "$ZIP" . \
-    -x '.venv/*' '__pycache__/*' '*/__pycache__/*' '*.pyc' \
-       '.pytest_cache/*' '.env' 'tests/*' )
+say "Packaging the repository"
+# The whole repo, because the buildspecs are repo-root relative: api/buildspec.yml
+# builds ./api and web/buildspec.yml builds ./web. That matches how CodePipeline
+# checks the source out, so the same buildspec works from S3 and from GitHub.
+ZIP=$(mktemp -d)/nnneva.zip
+zip -qr "$ZIP" api web \
+  -x 'api/.venv/*' '*/__pycache__/*' '*.pyc' 'api/.pytest_cache/*' \
+     '*/.env' 'web/node_modules/*' 'web/.next/*' 'api/tests/*'
 printf '  %s\n' "$(du -h "$ZIP" | cut -f1)"
 
-say "Uploading to s3://${BUCKET}/source/nnneva-api.zip"
-aws s3 cp "$ZIP" "s3://${BUCKET}/source/nnneva-api.zip" --region "$REGION" >/dev/null
+say "Uploading to s3://${BUCKET}/source/nnneva.zip"
+aws s3 cp "$ZIP" "s3://${BUCKET}/source/nnneva.zip" --region "$REGION" >/dev/null
 
 say "Starting build $PROJECT"
 BUILD_ID=$(aws codebuild start-build --region "$REGION" \
