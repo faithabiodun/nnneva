@@ -27,10 +27,10 @@ class LoginIn(BaseModel):
     password: str
 
 
-class GoogleAuthIn(BaseModel):
-    """The ID token the web tier received from Google's token endpoint."""
+class SupabaseAuthIn(BaseModel):
+    """The access token the web tier received from Supabase Auth."""
 
-    id_token: str = Field(min_length=1)
+    access_token: str = Field(min_length=1)
 
 
 class TokenOut(BaseModel):

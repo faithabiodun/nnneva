@@ -3,7 +3,7 @@
 # Deploy the Nnneva API to Amazon ECS Express Mode.
 #
 #   export DATABASE_URL=... SECRET_KEY=... WEB_ORIGIN=...
-#   export GOOGLE_CLIENT_ID=...     # optional; omit to leave Google sign-in off
+#   export SUPABASE_URL=...         # optional; omit to leave Google sign-in off
 #   ./deploy/aws-ecs-express.sh
 #
 # Express Mode is AWS's named replacement for App Runner, which closed to new
@@ -144,7 +144,7 @@ printf '  logs %s\n' "$LOG_GROUP"
 # invocation before scaling past a single instance.
 
 CONTAINER=$(DB="$DATABASE_URL" SK="$SECRET_KEY" WO="$WEB_ORIGIN" \
-  GCID="${GOOGLE_CLIENT_ID:-}" \
+  SBURL="${SUPABASE_URL:-}" \
   IMG="$IMAGE" LG="$LOG_GROUP" MODEL="$MODEL_ID" RG="$REGION" python3 - <<'PY'
 import json, os
 
@@ -157,10 +157,11 @@ environment = [
     {"name": "SECRET_KEY",        "value": os.environ["SK"]},
 ]
 
-# Google sign-in is optional. An empty entry is not the same as an absent one:
-# it would let a deploy that simply forgot the variable look deliberate.
-if os.environ.get("GCID"):
-    environment.append({"name": "GOOGLE_CLIENT_ID", "value": os.environ["GCID"]})
+# Google sign-in (via Supabase Auth) is optional. An empty entry is not the
+# same as an absent one: it would let a deploy that simply forgot the variable
+# look deliberate.
+if os.environ.get("SBURL"):
+    environment.append({"name": "SUPABASE_URL", "value": os.environ["SBURL"]})
 
 print(json.dumps({
     "image": os.environ["IMG"],

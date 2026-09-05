@@ -31,14 +31,20 @@ class Settings(BaseSettings):
 
     web_origin: str = "http://localhost:3000"
 
-    # Google sign-in. Only the client id is needed here: the API never talks to
-    # Google's token endpoint, it only verifies the ID token the web tier got
-    # back, so it never needs the client secret. Empty disables the route.
-    google_client_id: str = ""
+    # Google sign-in, brokered by Supabase Auth. Supabase owns the OAuth
+    # redirect and holds the Google client secret; this API only verifies the
+    # access token Supabase issues. Empty disables the route.
+    supabase_url: str = ""
+
+    # Only for projects still signing with a shared secret. Modern projects use
+    # asymmetric keys published at /auth/v1/.well-known/jwks.json and need
+    # nothing here. Which one a project uses cannot be told from the outside,
+    # so both paths exist; see app/supabase_auth.py.
+    supabase_jwt_secret: str = ""
 
     @property
-    def google_enabled(self) -> bool:
-        return bool(self.google_client_id)
+    def supabase_auth_enabled(self) -> bool:
+        return bool(self.supabase_url)
 
     @property
     def has_aws_credentials(self) -> bool:

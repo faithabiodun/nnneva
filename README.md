@@ -126,11 +126,11 @@ conditioned to ECS, so the keys cannot hand those roles to anything else.
 export DATABASE_URL="postgresql+psycopg://..."
 export SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
 export WEB_ORIGIN="https://your-web-app"
-export GOOGLE_CLIENT_ID="....apps.googleusercontent.com"   # optional
+export SUPABASE_URL="https://<ref>.supabase.co"            # optional
 ./deploy/aws-ecs-express.sh
 ```
 
-`GOOGLE_CLIENT_ID` is optional and omitted from the task definition entirely
+`SUPABASE_URL` is optional and omitted from the task definition entirely
 when unset, rather than sent as an empty string — so a deploy that forgot it
 looks absent rather than deliberate. Everything else is required and the script
 refuses to run without it.
@@ -238,31 +238,39 @@ or any Python host — and only the web app stays on Pxxl.
 
 ## Google sign-in
 
-Optional. With `GOOGLE_CLIENT_ID` unset the button still renders and explains
-that it is not configured, and `POST /auth/google` returns 501.
+Optional, and brokered by **Supabase Auth** rather than by talking to Google
+directly. With `SUPABASE_URL` unset the button still renders and explains it is
+not configured, and `POST /auth/supabase` returns 501.
+
+Supabase holds the Google client secret in its provider settings, so no Google
+credential appears in this repo or in either tier's environment. Adding a second
+provider later is a dashboard toggle, not more code here.
 
 The work is split so that no tier has to trust another:
 
-1. `/auth/google` (web) redirects to Google with a random `state`, kept in a
-   ten-minute httpOnly cookie.
-2. `/auth/google/callback` (web) checks `state` in constant time, then swaps the
-   code for an ID token. This step needs the client secret, which is why it
-   lives in the web tier rather than the API.
-3. `POST /auth/google` (API) **verifies that ID token itself** against Google's
-   published keys — signature, issuer, expiry, and `aud` pinned to our client
-   id. It does not accept an email the web tier merely asserts; if it did,
-   anything that could reach the API could sign in as anyone.
+1. `/auth/google` (web) generates a PKCE verifier, sends only its SHA-256 hash,
+   and redirects to Supabase, which runs the Google consent screen.
+2. `/auth/callback` (web) exchanges the returned code for a Supabase access
+   token, using the verifier held in a ten-minute httpOnly cookie. An
+   intercepted code is worthless without it.
+3. `POST /auth/supabase` (API) **verifies that token itself** — signature,
+   issuer, expiry, and `aud` pinned to `authenticated`. It does not accept an
+   email the web tier merely asserts; if it did, anything that could reach the
+   API could sign in as anyone.
 4. The API finds or creates the user and returns an ordinary Nnneva session
    token, which becomes the same httpOnly cookie the password flow sets.
 
+Supabase signs tokens either asymmetrically (current default, public keys at
+`/auth/v1/.well-known/jwks.json`, nothing secret needed) or with a shared
+secret (legacy). Which one a project uses cannot be determined from outside, so
+both are supported: leave `SUPABASE_JWT_SECRET` blank for a modern project, set
+it for a legacy one.
+
 Accounts created this way have `password_hash = NULL`. A placeholder hash would
-have been worse — one known string would open every Google account through the
+have been worse — one known string would open every such account through the
 password form — so `verify_password` returns False before reaching bcrypt.
 Signing in with Google using an address that already has a password account
 signs into that account and leaves its password intact.
-
-Set the **same** `GOOGLE_CLIENT_ID` on both tiers, or every token fails its
-audience check.
 
 ## Guardrails
 
