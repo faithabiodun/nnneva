@@ -181,7 +181,17 @@ alembic upgrade head
 
 Set the same `DATABASE_URL` as an environment variable on the API service.
 
-If you use Supabase instead, note that it grants its `anon` and `authenticated` roles
+**On Supabase, use the Session pooler connection string, not the direct one.**
+Direct connections (`db.<ref>.supabase.co:5432`) resolve to IPv6 only unless the
+project has the IPv4 add-on, and a Fargate task without IPv6 cannot reach them —
+which surfaces as a connection timeout on boot, not as anything mentioning
+addresses. The Session pooler is IPv4 and speaks the full protocol.
+
+Avoid the *Transaction* pooler (port 6543) unless you also disable prepared
+statements: psycopg 3 prepares by default and PgBouncer in transaction mode
+cannot hold those between statements. The Session pooler has no such problem.
+
+Note also that Supabase grants its `anon` and `authenticated` roles
 full access to every table in `public` by default, so anyone holding the
 publishable key could read every password hash and pregnancy profile. Nnneva
 does not use PostgREST — it connects directly as the owning role — so migration
