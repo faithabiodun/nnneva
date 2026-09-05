@@ -5,16 +5,15 @@ import { useState, useTransition } from "react";
 
 import { completeOnboarding } from "@/app/actions/app";
 import { Mark } from "@/components/Brand";
+import { ClockPicker } from "@/components/onboarding/ClockPicker";
+import { DueDateCalendar } from "@/components/onboarding/DueDateCalendar";
 import {
   EMPTY,
   contactWindowLabel,
-  dueDateOf,
   dueDateProblem,
   dueDateRange,
   RELATIONSHIPS,
   toPayload,
-  trimesterFor,
-  weeksFrom,
   type Answers,
 } from "@/lib/onboarding-answers";
 import { STEPS } from "@/lib/onboarding";
@@ -107,8 +106,6 @@ export default function OnboardingPage() {
     });
   }
 
-  const iso = dueDateOf(answers);
-  const week = iso ? weeksFrom(iso) : null;
 
   return (
     <main className="flex min-h-dvh flex-col bg-canvas">
@@ -143,7 +140,11 @@ export default function OnboardingPage() {
             <p className="mt-3.5 mb-8 max-w-[460px] text-body text-muted">{step.help}</p>
 
             {step.kind === "date" && (
-              <DueDateCard answers={answers} set={set} week={week} />
+              <DueDateCalendar
+                value={answers.dueDate}
+                onChange={(d) => set("dueDate", d)}
+                {...dueDateRange()}
+              />
             )}
 
             {step.kind === "place" && (
@@ -375,50 +376,6 @@ function Field({
   );
 }
 
-function DueDateCard({
-  answers,
-  set,
-  week,
-}: {
-  answers: Answers;
-  set: <K extends keyof Answers>(key: K, value: Answers[K]) => void;
-  week: number | null;
-}) {
-  // A native date input, so every platform offers its own calendar rather than
-  // asking someone to type three numbers correctly. min/max keep the picker
-  // inside the range a due date can sensibly fall in, which also rules out the
-  // mistyped year that used to be the easiest way to get every later deadline
-  // silently wrong.
-  const { min, max } = dueDateRange();
-
-  return (
-    <div className="max-w-[460px] rounded-[20px] bg-white px-7 py-6.5 shadow-[0_1px_3px_rgba(11,44,34,0.05),0_12px_32px_rgba(11,44,34,0.06)]">
-      <label className="block">
-        <span className="mb-1.5 block text-[12px] text-muted-2">Due date</span>
-        <input
-          type="date"
-          value={answers.dueDate}
-          min={min}
-          max={max}
-          onChange={(e) => set("dueDate", e.target.value)}
-          className="w-full rounded-[11px] bg-surface px-4 py-3.5 text-[16px] text-ink outline-none focus:ring-2 focus:ring-green"
-        />
-      </label>
-
-      <p className="mt-4.5 rounded-md bg-pink-wash px-4 py-3.5 text-small text-ink" aria-live="polite">
-        {week === null ? (
-          "Pick your due date and Nnneva will work out where you are."
-        ) : (
-          <>
-            That puts you at <strong className="font-semibold">{week} weeks</strong>,{" "}
-            {trimesterFor(week)}.
-          </>
-        )}
-      </p>
-    </div>
-  );
-}
-
 /**
  * Fills in the care location from where the person actually is.
  *
@@ -541,15 +498,12 @@ function ContactWindow({
       </div>
 
       {!anyTime && (
-        <label className="mt-4 block">
-          <span className="mb-1.5 block text-[12px] text-muted-2">Reach me from</span>
-          <input
-            type="time"
+        <div className="mt-4">
+          <ClockPicker
             value={answers.contactTime}
-            onChange={(e) => set("contactTime", e.target.value)}
-            className="w-full rounded-[11px] bg-surface px-4 py-3.5 text-[16px] text-ink outline-none focus:ring-2 focus:ring-green"
+            onChange={(t) => set("contactTime", t)}
           />
-        </label>
+        </div>
       )}
 
       <p className="mt-4.5 rounded-md bg-green-tint px-4 py-3.5 text-small text-ink" aria-live="polite">

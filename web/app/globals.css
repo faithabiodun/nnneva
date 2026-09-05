@@ -319,3 +319,37 @@
   .nv-rail-text { color: var(--color-faint); }
   .nv-rail-text[data-step="0"] { color: var(--color-ink); }
 }
+
+/* ---- Discouraging casual copying ------------------------------------------
+ *
+ * Text is not selectable and images cannot be dragged out. This is a deterrent,
+ * not protection: anything a browser renders is already on the reader's
+ * machine, and view-source, devtools and screenshots all still work. It stops
+ * the accidental drag and the idle highlight, nothing more.
+ *
+ * Form fields are deliberately exempt. Making an input unselectable breaks
+ * ordinary editing — you could not correct a typo without retyping the field —
+ * and pasting a clinic name or a phone number is a thing people genuinely need
+ * to do here.
+ */
+body {
+  -webkit-user-select: none;
+  user-select: none;
+  /* Stops the press-and-hold copy menu on iOS. */
+  -webkit-touch-callout: none;
+}
+
+input,
+textarea,
+select,
+[contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+img,
+svg,
+a {
+  -webkit-user-drag: none;
+  user-drag: none;
+}

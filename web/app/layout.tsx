@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Outfit, Playfair_Display } from "next/font/google";
 
 import "./globals.css";
+import { NoDrag } from "@/components/NoDrag";
 
 /* Outfit carries all interface text; Playfair carries display sizes. */
 const outfit = Outfit({
@@ -35,7 +36,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${outfit.variable} ${playfair.variable}`}>
-      <body>{children}</body>
+      <body>
+        <NoDrag />
+        {children}
+      </body>
     </html>
   );
 }
