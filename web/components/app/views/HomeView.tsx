@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 import { answerApproval, setTaskStatus } from "@/app/actions/app";
 import { AppShell } from "@/components/app/AppShell";
 import { TickBox } from "@/components/app/Bits";
+import { HomeAgent } from "@/components/app/HomeAgent";
 import { appointmentWhen, dayOfMonth, dueLabel, timeOfDay, weekdayShort } from "@/lib/format";
 import type { Home } from "@/lib/types";
 
@@ -20,10 +21,12 @@ export function HomeView({
   home,
   today,
   greeting,
+  onboarded,
 }: {
   home: Home;
   today: string;
   greeting: string;
+  onboarded: boolean;
 }) {
   const [pending, startTransition] = useTransition();
   // Ticked immediately, then confirmed by the server. A checkbox that waits for
@@ -222,19 +225,8 @@ export function HomeView({
         </div>
       </div>
 
-      {/* ---- Ask ------------------------------------------------------------ */}
-      <Link
-        href="/agent"
-        className="card mt-5 flex items-center gap-3 px-5 py-4 transition-colors hover:bg-surface"
-      >
-        <span className="size-2 shrink-0 rounded-full bg-pink" aria-hidden />
-        <span className="min-w-0 flex-1 text-body text-muted-2">
-          Ask Nnneva anything, or describe what you need done
-        </span>
-        <span className="pill hidden bg-surface text-caption text-muted-2 sm:inline-flex">
-          Enter
-        </span>
-      </Link>
+      {/* ---- The agent ------------------------------------------------------ */}
+      <HomeAgent onboarded={onboarded} />
     </AppShell>
   );
 }

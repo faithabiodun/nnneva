@@ -1,5 +1,5 @@
 import { api } from "@/lib/api";
-import type { Home } from "@/lib/types";
+import type { Home, Profile } from "@/lib/types";
 import { HomeView } from "@/components/app/views/HomeView";
 
 export const metadata = { title: "Home" };
@@ -11,7 +11,12 @@ function greetingFor(hour: number): string {
 }
 
 export default async function HomePage() {
-  const home = await api.get<Home>("/home");
+  // Both in one round trip: the agent panel needs to know whether there is any
+  // pregnancy context to reason from.
+  const [home, profile] = await Promise.all([
+    api.get<Home>("/home"),
+    api.get<Profile>("/profile"),
+  ]);
 
   // Formatted on the server: a date computed during a client render is impure
   // and would not match what was sent down.
@@ -22,5 +27,12 @@ export default async function HomePage() {
     month: "long",
   });
 
-  return <HomeView home={home} today={today} greeting={greetingFor(now.getHours())} />;
+  return (
+    <HomeView
+      home={home}
+      today={today}
+      greeting={greetingFor(now.getHours())}
+      onboarded={profile.onboarded}
+    />
+  );
 }
