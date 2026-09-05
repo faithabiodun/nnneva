@@ -1,0 +1,40 @@
+# AWS CodeBuild: build the API image and push it to ECR.
+#
+# This exists so the image can be built without a local Docker daemon. It also
+# builds inside AWS, where pulls from public.ecr.aws are not subject to the
+# rate limits or egress restrictions that break builds on shared CI addresses.
+#
+# The source is uploaded to S3 by deploy/aws-codebuild.sh rather than pulled
+# from GitHub, so no repository credentials are involved.
+
+version: 0.2
+
+env:
+  variables:
+    # Overridden by the CodeBuild project's environment.
+    IMAGE_REPO: nnneva-api
+    IMAGE_TAG: latest
+
+phases:
+  pre_build:
+    commands:
+      - REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com"
+      - echo "Signing in to $REGISTRY"
+      - aws ecr get-login-password --region "$AWS_DEFAULT_REGION" | docker login --username AWS --password-stdin "$REGISTRY"
+
+  build:
+    commands:
+      # Fargate runs x86_64 unless the task is configured for ARM. Building for
+      # the wrong architecture surfaces as a failing health check that never
+      # mentions architecture, so it is pinned here.
+      - echo "Building linux/amd64"
+      - docker build --platform linux/amd64 -t "$IMAGE_REPO:$IMAGE_TAG" -t "$IMAGE_REPO:latest" .
+
+  post_build:
+    commands:
+      - REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com"
+      - docker tag "$IMAGE_REPO:$IMAGE_TAG" "$REGISTRY/$IMAGE_REPO:$IMAGE_TAG"
+      - docker tag "$IMAGE_REPO:latest"     "$REGISTRY/$IMAGE_REPO:latest"
+      - docker push "$REGISTRY/$IMAGE_REPO:$IMAGE_TAG"
+      - docker push "$REGISTRY/$IMAGE_REPO:latest"
+      - echo "Pushed $REGISTRY/$IMAGE_REPO:$IMAGE_TAG"
