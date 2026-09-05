@@ -272,6 +272,40 @@ password form — so `verify_password` returns False before reaching bcrypt.
 Signing in with Google using an address that already has a password account
 signs into that account and leaves its password intact.
 
+## Continuous deployment
+
+A push to `main` rebuilds and redeploys both apps. No manual step.
+
+```
+GitHub push → CodePipeline → CodeBuild (api) ─┐
+                           → CodeBuild (web) ─┴→ ECS Express services
+```
+
+The pipeline is `nnneva` in `us-east-1`; its source is a CodeStar connection to
+this repository, so a push starts it within seconds rather than waiting on a
+poll.
+
+Each build rolls its own service at the end of `post_build` rather than handing
+off to a CodePipeline ECS deploy action. That action calls `UpdateService`,
+which does not apply to Express Gateway services — they have their own
+`UpdateExpressGatewayService` API. The deploy step reads the service's current
+container definition and changes only the image, so environment variables and
+secrets set outside the pipeline are carried forward rather than reset.
+
+Two things that are easy to get wrong here, both learned the hard way:
+
+- `UpdateExpressGatewayService` registers a task definition revision internally,
+  so the build role needs `ecs:RegisterTaskDefinition`. Without it the failure
+  names the *task definition*, not the service, which reads like the wrong
+  problem.
+- CodeBuild's bundled boto3 predates Express Mode, so the buildspec pins a newer
+  one rather than trusting the image.
+
+Configuration lives in SSM Parameter Store under `/nnneva/` (API) and
+`/nnneva/web/` (web), injected as container secrets. Nothing sensitive is in a
+task definition, and changing a value needs no rebuild — update the parameter
+and roll the service.
+
 ## Guardrails
 
 These are product requirements, not disclaimers:
