@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { SESSION_COOKIE } from "@/lib/session";
+import { absoluteUrl } from "@/lib/site";
 
 /**
  * Route protection. In Next 16 this file is `proxy.ts` — the old
@@ -30,14 +31,14 @@ export default function proxy(request: NextRequest) {
   const signedIn = Boolean(request.cookies.get(SESSION_COOKIE)?.value);
 
   if (!signedIn && SIGNED_IN_ONLY.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
-    const login = new URL("/login", request.nextUrl);
+    const login = absoluteUrl("/login", request);
     // Come back here once they are in, rather than dumping them on Home.
     login.searchParams.set("next", pathname);
     return NextResponse.redirect(login);
   }
 
   if (signedIn && SIGNED_OUT_ONLY.includes(pathname)) {
-    return NextResponse.redirect(new URL("/home", request.nextUrl));
+    return NextResponse.redirect(absoluteUrl("/home", request));
   }
 
   return NextResponse.next();

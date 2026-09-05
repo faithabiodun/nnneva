@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { api, ApiError } from "@/lib/api";
+import { absoluteUrl } from "@/lib/site";
 import { OAUTH_COOKIE, supabaseConfigured, supabaseUrl } from "@/lib/supabase";
 import { startSession } from "@/lib/session";
 import type { Token } from "@/lib/types";
@@ -52,7 +53,7 @@ export async function GET(request: NextRequest) {
   await startSession(token.access_token);
 
   const destination = saved.next || (token.onboarded ? "/home" : "/onboarding");
-  return NextResponse.redirect(new URL(destination, request.nextUrl));
+  return NextResponse.redirect(absoluteUrl(destination, request));
 }
 
 async function exchangeCode(code: string, verifier: string): Promise<string> {
@@ -84,7 +85,7 @@ async function exchangeCode(code: string, verifier: string): Promise<string> {
 
 /** Back to the login screen with a reason the page knows how to explain. */
 function fail(request: NextRequest, reason: string) {
-  const login = new URL("/login", request.nextUrl);
+  const login = absoluteUrl("/login", request);
   login.searchParams.set("google", reason);
   return NextResponse.redirect(login);
 }

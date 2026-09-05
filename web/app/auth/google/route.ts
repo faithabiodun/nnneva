@@ -3,6 +3,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { absoluteUrl } from "@/lib/site";
 import { OAUTH_COOKIE, redirectUri, supabaseConfigured, supabaseUrl } from "@/lib/supabase";
 
 /**
@@ -16,7 +17,7 @@ import { OAUTH_COOKIE, redirectUri, supabaseConfigured, supabaseUrl } from "@/li
  */
 export async function GET(request: NextRequest) {
   if (!supabaseConfigured()) {
-    return NextResponse.redirect(new URL("/login?google=unavailable", request.nextUrl));
+    return NextResponse.redirect(absoluteUrl("/login?google=unavailable", request));
   }
 
   const verifier = randomBytes(32).toString("base64url");
