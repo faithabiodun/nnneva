@@ -5,7 +5,8 @@ import { useState, useTransition } from "react";
 import { logOut } from "@/app/actions/auth";
 import { updateProfile } from "@/app/actions/app";
 import { AppShell } from "@/components/app/AppShell";
-import { ReadField, ToggleRow } from "@/components/app/Bits";
+import { EditField, ReadField, ToggleRow } from "@/components/app/Bits";
+import { HELP_AREAS } from "@/lib/onboarding";
 import type { Profile } from "@/lib/types";
 
 const TABS = [
@@ -111,33 +112,74 @@ export function ProfileView({ profile }: { profile: Profile }) {
           {tab === "Pregnancy context" && (
             <section className="card p-6.5">
               <h2 className="card-title mb-4.5">Pregnancy context</h2>
-              <dl className="grid gap-4 sm:grid-cols-2">
-                <ReadField label="Due date" value={current.due_date ?? "Not set"} />
+              {!current.onboarded && (
+                <p className="mb-4 rounded-md bg-green-tint px-3.5 py-2.5 text-caption text-muted">
+                  Nnneva needs your due date before it can track your week, prepare for
+                  appointments or time reminders. Everything else is optional.
+                </p>
+              )}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <EditField
+                  label="Due date"
+                  type="date"
+                  value={current.due_date ?? ""}
+                  onCommit={(due_date) =>
+                    due_date && save({ due_date }, { ...current, due_date })
+                  }
+                />
+                {/* Derived from the due date, so it is shown rather than asked for. */}
                 <ReadField
                   label="Current stage"
                   value={
                     current.gestational_week !== null
                       ? `${current.gestational_week} weeks, ${current.trimester}`
-                      : "Not set"
+                      : "Set a due date"
                   }
                 />
-                <ReadField label="Care location" value={current.care_location ?? "Not set"} />
-                <ReadField label="Usual clinician" value={current.clinician ?? "Not set"} />
-              </dl>
-              {current.help_areas.length > 0 && (
-                <>
-                  <h3 className="mt-6 mb-2.5 text-caption text-muted">
-                    What Nnneva handles for you
-                  </h3>
-                  <ul className="flex flex-wrap gap-2">
-                    {current.help_areas.map((area) => (
-                      <li key={area} className="pill bg-green-wash text-caption text-green">
+                <EditField
+                  label="Care location"
+                  value={current.care_location ?? ""}
+                  placeholder="Clinic or hospital"
+                  onCommit={(care_location) =>
+                    save({ care_location }, { ...current, care_location })
+                  }
+                />
+                <EditField
+                  label="Usual clinician"
+                  value={current.clinician ?? ""}
+                  placeholder="Midwife or doctor"
+                  onCommit={(clinician) => save({ clinician }, { ...current, clinician })}
+                />
+              </div>
+              <h3 className="mt-6 mb-2.5 text-caption text-muted">
+                What Nnneva handles for you
+              </h3>
+              <ul className="flex flex-wrap gap-2">
+                {HELP_AREAS.map((area) => {
+                  const on = current.help_areas.includes(area);
+                  return (
+                    <li key={area}>
+                      <button
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => {
+                          const help_areas = on
+                            ? current.help_areas.filter((a) => a !== area)
+                            : [...current.help_areas, area];
+                          save({ help_areas }, { ...current, help_areas });
+                        }}
+                        className={`pill text-caption transition-colors ${
+                          on
+                            ? "bg-green-wash text-green"
+                            : "bg-surface text-muted hover:bg-surface-2 hover:text-ink"
+                        }`}
+                      >
                         {area}
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              )}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
             </section>
           )}
 

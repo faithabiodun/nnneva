@@ -8,6 +8,8 @@ export type Shell = {
   gestationalWeek: number | null;
   dueDate: string | null;
   pendingApprovals: number;
+  /** False until the pregnancy context exists; drives the setup prompt. */
+  onboarded: boolean;
 };
 
 const ShellContext = createContext<Shell | null>(null);

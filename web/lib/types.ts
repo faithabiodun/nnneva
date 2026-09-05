@@ -119,6 +119,8 @@ export type Profile = {
   care_location: string | null;
   clinician: string | null;
   help_areas: string[];
+  /** False when there is no pregnancy context yet — Google sign-in skips it. */
+  onboarded: boolean;
   contact_window: string;
   retention: string;
   notifications: Record<string, boolean>;

@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from app.deps import CurrentUser, DbSession
-from app.models import User
+from app.models import Memory, MemoryKind, PregnancyProfile, User
 from app.schemas import ProfileOut, ProfilePatch
 
 router = APIRouter(prefix="/profile", tags=["profile"])
@@ -52,6 +52,7 @@ def profile_payload(user: User) -> ProfileOut:
             if contact
             else None
         ),
+        onboarded=profile is not None,
     )
 
 
@@ -67,11 +68,31 @@ def update_profile(payload: ProfilePatch, user: CurrentUser, db: DbSession) -> P
         if value is not None:
             setattr(user, field, value)
 
+    # The pregnancy context. A due date is the one field that can bring the
+    # profile into existence: everything else describes a pregnancy, so without
+    # it there is nothing to attach them to.
+    if user.profile is None and payload.due_date is not None:
+        user.profile = PregnancyProfile(user_id=user.id, due_date=payload.due_date)
+        db.add(user.profile)
+        # Same seed as onboarding, so the agent starts with context however the
+        # context arrived.
+        db.add(Memory(
+            user_id=user.id, kind=MemoryKind.context,
+            fact=f"Due {payload.due_date:%-d %B %Y}.",
+            source="From profile",
+        ))
+
     if user.profile:
+        if payload.due_date is not None:
+            user.profile.due_date = payload.due_date
         if payload.care_location is not None:
             user.profile.care_location = payload.care_location
         if payload.clinician is not None:
             user.profile.clinician = payload.clinician
+        if payload.help_areas is not None:
+            user.profile.help_areas = "\n".join(
+                a.strip() for a in payload.help_areas if a.strip()
+            )
 
     for key, value in (payload.notifications or {}).items():
         if key in NOTIFICATION_FIELDS:

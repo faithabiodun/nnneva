@@ -83,8 +83,11 @@ export async function forgetMemory(memoryId: string): Promise<void> {
 export type ProfilePatch = {
   full_name?: string;
   phone?: string;
+  /** Creates the pregnancy profile when there is none yet. */
+  due_date?: string;
   care_location?: string;
   clinician?: string;
+  help_areas?: string[];
   contact_window?: string;
   retention?: string;
   notifications?: Record<string, boolean>;
@@ -94,6 +97,10 @@ export type ProfilePatch = {
 export async function updateProfile(patch: ProfilePatch): Promise<Profile> {
   const profile = await api.patch<Profile>("/profile", patch);
   revalidatePath("/profile");
+  // The layout reads the profile for the sidebar and the setup prompt, so a
+  // due date entered here has to clear the prompt everywhere, not just on
+  // this page.
+  revalidatePath("/", "layout");
   return profile;
 }
 

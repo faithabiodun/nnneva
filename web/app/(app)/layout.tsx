@@ -1,3 +1,4 @@
+import { SetupPrompt } from "@/components/app/SetupPrompt";
 import { ShellProvider } from "@/components/app/ShellContext";
 import { api } from "@/lib/api";
 import type { Approval, Profile } from "@/lib/types";
@@ -19,8 +20,10 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         gestationalWeek: profile.gestational_week,
         dueDate: profile.due_date,
         pendingApprovals: approvals.length,
+        onboarded: profile.onboarded,
       }}
     >
+      <SetupPrompt onboarded={profile.onboarded} />
       {children}
     </ShellProvider>
   );

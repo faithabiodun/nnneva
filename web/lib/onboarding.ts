@@ -90,3 +90,12 @@ export const STEPS: Step[] = [
     ],
   },
 ];
+
+/**
+ * The help areas, taken from the step that asks for them rather than repeated.
+ * The profile screen offers the same set, and a second hand-written list would
+ * drift — a label edited in one place would silently stop matching what is
+ * already stored against accounts set up through the other.
+ */
+export const HELP_AREAS: string[] =
+  STEPS.find((s) => s.kind === "multi")?.options?.map((o) => o.label) ?? [];

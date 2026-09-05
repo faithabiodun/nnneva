@@ -114,6 +114,46 @@ export function ReadField({ label, value }: { label: string; value: string }) {
   );
 }
 
+/**
+ * An editable version of ReadField. Saves on blur rather than behind a Save
+ * button, matching the toggles elsewhere on this screen — every other setting
+ * here persists the moment it changes, and one field that needs confirming
+ * would be the odd one out.
+ */
+export function EditField({
+  label,
+  value,
+  onCommit,
+  type = "text",
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onCommit: (next: string) => void;
+  type?: "text" | "date";
+  placeholder?: string;
+}) {
+  const id = `field-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+  return (
+    <div>
+      <label htmlFor={id} className="mb-1.5 block text-caption text-muted">
+        {label}
+      </label>
+      <input
+        id={id}
+        type={type}
+        defaultValue={value}
+        placeholder={placeholder}
+        onBlur={(e) => {
+          const next = e.target.value.trim();
+          if (next !== value) onCommit(next);
+        }}
+        className="w-full rounded-md bg-surface px-4 py-3 text-small text-ink-2 outline-none transition-shadow focus:ring-2 focus:ring-green"
+      />
+    </div>
+  );
+}
+
 /** The uppercase section label the design uses above a card's contents. */
 export function CardLabel({ children }: { children: ReactNode }) {
   return <p className="eyebrow text-faint">{children}</p>;

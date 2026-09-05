@@ -201,6 +201,10 @@ class ProfileOut(BaseModel):
     retention: str
     notifications: dict[str, bool]
     trusted_contact: dict | None
+    # Whether the pregnancy context exists. Google sign-in creates an account
+    # without it, so the app has to be able to ask for it later rather than
+    # assuming everyone came through onboarding.
+    onboarded: bool
 
 
 class HomeOut(BaseModel):
@@ -243,8 +247,13 @@ class ApprovalDecision(BaseModel):
 class ProfilePatch(BaseModel):
     full_name: str | None = None
     phone: str | None = None
+    # The pregnancy context, editable after the fact. due_date creates the
+    # profile row when there is none, so someone who skipped onboarding can
+    # fill it in from their profile instead of being sent back through a wizard.
+    due_date: date | None = None
     care_location: str | None = None
     clinician: str | None = None
+    help_areas: list[str] | None = None
     contact_window: str | None = None
     retention: str | None = None
     notifications: dict[str, bool] | None = None
