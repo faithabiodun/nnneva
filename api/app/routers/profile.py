@@ -45,6 +45,8 @@ def profile_payload(user: User) -> ProfileOut:
             {
                 "name": contact.name,
                 "relationship": contact.relationship_label,
+                "phone": contact.phone,
+                "email": contact.email,
                 "permissions": {
                     key: getattr(contact, field) for key, field in CONTACT_PERMISSIONS.items()
                 },

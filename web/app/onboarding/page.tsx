@@ -7,9 +7,11 @@ import { completeOnboarding } from "@/app/actions/app";
 import { Mark } from "@/components/Brand";
 import {
   EMPTY,
-  MONTHS,
+  contactWindowLabel,
   dueDateOf,
   dueDateProblem,
+  dueDateRange,
+  RELATIONSHIPS,
   toPayload,
   trimesterFor,
   weeksFrom,
@@ -43,13 +45,47 @@ export default function OnboardingPage() {
     }));
   }
 
+  /**
+   * Why this step cannot be left yet, or null.
+   *
+   * Skipping is exempt: a step that offers a way out means the answer really is
+   * optional, and validating it anyway would make the skip a lie. The due date
+   * is the exception — nothing else in the product works without it, which is
+   * why step one offers no skip at all.
+   */
+  function problemWith(index: number): string | null {
+    const step = STEPS[index];
+    switch (step.kind) {
+      case "date":
+        return dueDateProblem(answers);
+      case "place":
+        return answers.careKind || answers.careName.trim()
+          ? null
+          : "Choose the kind of care, or type where you will be seen.";
+      case "multi":
+        return answers.helpAreas.length > 0
+          ? null
+          : "Pick at least one thing for Nnneva to handle.";
+      case "contact":
+        // The whole step is optional; only a half-filled answer is a problem.
+        if (!answers.contactName.trim()) return null;
+        return answers.contactRelationship
+          ? null
+          : "Choose who they are to you.";
+      case "choice":
+        return answers.contactWindow === "any" || answers.contactTime
+          ? null
+          : "Pick a time, or choose any time.";
+      default:
+        return null;
+    }
+  }
+
   function next(skipping = false) {
     setProblem(null);
 
-    // The due date is the one answer nothing else works without, so it is the
-    // one answer that cannot be skipped past.
-    if (i === 0) {
-      const bad = dueDateProblem(answers);
+    if (!skipping) {
+      const bad = problemWith(i);
       if (bad) {
         setProblem(bad);
         return;
@@ -131,6 +167,7 @@ export default function OnboardingPage() {
                     placeholder="Optional"
                   />
                 </div>
+                <LocateMe onFound={(place) => set("careName", place)} />
               </div>
             )}
 
@@ -143,28 +180,58 @@ export default function OnboardingPage() {
             )}
 
             {step.kind === "contact" && (
-              <div className="flex max-w-[520px] flex-col gap-3 sm:flex-row">
-                <Field
-                  label="Their name"
-                  value={answers.contactName}
-                  onChange={(v) => set("contactName", v)}
-                  placeholder="Someone you trust"
-                />
-                <Field
-                  label="Who they are to you"
-                  value={answers.contactRelationship}
-                  onChange={(v) => set("contactRelationship", v)}
-                  placeholder="Partner"
-                />
+              <div className="flex max-w-[560px] flex-col gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <Field
+                    label="Their name"
+                    value={answers.contactName}
+                    onChange={(v) => set("contactName", v)}
+                    placeholder="Someone you trust"
+                  />
+                  {/* Chosen rather than typed: the stored value is then one of a
+                      known set, which the agent can reason about instead of
+                      guessing what "hubby" means. */}
+                  <label className="min-w-0 flex-1">
+                    <span className="mb-1.5 block text-[12px] text-muted-2">
+                      Who they are to you
+                    </span>
+                    <select
+                      value={answers.contactRelationship}
+                      onChange={(e) => set("contactRelationship", e.target.value)}
+                      className="w-full appearance-none rounded-[11px] bg-white px-4 py-3.5 text-[15px] text-ink shadow-[0_1px_2px_rgba(11,44,34,0.05)] outline-none focus:ring-2 focus:ring-green"
+                    >
+                      <option value="">Choose</option>
+                      {RELATIONSHIPS.map((r) => (
+                        <option key={r} value={r}>
+                          {r}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <Field
+                    label="Their phone"
+                    value={answers.contactPhone}
+                    onChange={(v) => set("contactPhone", v)}
+                    placeholder="+234 801 234 5678"
+                  />
+                  <Field
+                    label="Their email"
+                    value={answers.contactEmail}
+                    onChange={(v) => set("contactEmail", v)}
+                    placeholder="Optional"
+                  />
+                </div>
+                <p className="text-caption text-faint">
+                  Nnneva never contacts them on its own. Both are only used when you approve
+                  something specific to send.
+                </p>
               </div>
             )}
 
             {step.kind === "choice" && (
-              <Choices
-                options={step.options ?? []}
-                selected={[answers.contactWindow]}
-                onPick={(label) => set("contactWindow", label)}
-              />
+              <ContactWindow answers={answers} set={set} />
             )}
 
             {problem && (
@@ -317,61 +384,178 @@ function DueDateCard({
   set: <K extends keyof Answers>(key: K, value: Answers[K]) => void;
   week: number | null;
 }) {
-  const inputClass =
-    "w-full rounded-[11px] bg-surface px-4 py-3.5 text-[16px] text-ink outline-none";
+  // A native date input, so every platform offers its own calendar rather than
+  // asking someone to type three numbers correctly. min/max keep the picker
+  // inside the range a due date can sensibly fall in, which also rules out the
+  // mistyped year that used to be the easiest way to get every later deadline
+  // silently wrong.
+  const { min, max } = dueDateRange();
 
   return (
     <div className="max-w-[460px] rounded-[20px] bg-white px-7 py-6.5 shadow-[0_1px_3px_rgba(11,44,34,0.05),0_12px_32px_rgba(11,44,34,0.06)]">
-      <div className="flex gap-3">
-        <label className="min-w-0 flex-1">
-          <span className="mb-1.5 block text-[12px] text-muted-2">Day</span>
-          <input
-            inputMode="numeric"
-            maxLength={2}
-            value={answers.day}
-            onChange={(e) => set("day", e.target.value.replace(/\D/g, "").slice(0, 2))}
-            placeholder="14"
-            className={inputClass}
-          />
-        </label>
-        <label className="min-w-0 flex-[1.6]">
-          <span className="mb-1.5 block text-[12px] text-muted-2">Month</span>
-          {/* A select rather than free text: a mistyped month is the one way to
-              get every later deadline silently wrong. */}
-          <select
-            value={answers.month}
-            onChange={(e) => set("month", e.target.value)}
-            className={`${inputClass} appearance-none`}
-          >
-            <option value="">Choose</option>
-            {MONTHS.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="min-w-0 flex-[1.1]">
-          <span className="mb-1.5 block text-[12px] text-muted-2">Year</span>
-          <input
-            inputMode="numeric"
-            maxLength={4}
-            value={answers.year}
-            onChange={(e) => set("year", e.target.value.replace(/\D/g, "").slice(0, 4))}
-            className={inputClass}
-          />
-        </label>
-      </div>
+      <label className="block">
+        <span className="mb-1.5 block text-[12px] text-muted-2">Due date</span>
+        <input
+          type="date"
+          value={answers.dueDate}
+          min={min}
+          max={max}
+          onChange={(e) => set("dueDate", e.target.value)}
+          className="w-full rounded-[11px] bg-surface px-4 py-3.5 text-[16px] text-ink outline-none focus:ring-2 focus:ring-green"
+        />
+      </label>
 
       <p className="mt-4.5 rounded-md bg-pink-wash px-4 py-3.5 text-small text-ink" aria-live="polite">
         {week === null ? (
-          "Fill in your due date and Nnneva will work out where you are."
+          "Pick your due date and Nnneva will work out where you are."
         ) : (
           <>
             That puts you at <strong className="font-semibold">{week} weeks</strong>,{" "}
             {trimesterFor(week)}.
           </>
         )}
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Fills in the care location from where the person actually is.
+ *
+ * Browser geolocation plus OpenStreetMap's reverse geocoder, which needs no API
+ * key and no billing account — a Google Places lookup would give richer results
+ * (the clinic's name rather than the street it is on) but cannot ship without
+ * a key, and this should work for everyone on day one.
+ *
+ * Nothing is sent anywhere until the button is pressed, and the coordinates are
+ * used for this one lookup and never stored.
+ */
+function LocateMe({ onFound }: { onFound: (place: string) => void }) {
+  const [state, setState] = useState<"idle" | "locating" | "failed" | "denied">("idle");
+
+  const locate = () => {
+    if (!("geolocation" in navigator)) {
+      setState("failed");
+      return;
+    }
+    setState("locating");
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords }) => {
+        try {
+          const url =
+            "https://nominatim.openstreetmap.org/reverse?format=jsonv2" +
+            `&lat=${coords.latitude}&lon=${coords.longitude}&zoom=16`;
+          const r = await fetch(url, { headers: { Accept: "application/json" } });
+          if (!r.ok) throw new Error(String(r.status));
+          const data: { name?: string; display_name?: string } = await r.json();
+          // The first two parts of the display name are the useful ones: the
+          // place and its street. The rest is city, state, country, postcode.
+          const place =
+            data.name?.trim() ||
+            data.display_name?.split(",").slice(0, 2).join(",").trim() ||
+            "";
+          if (!place) throw new Error("no place");
+          onFound(place);
+          setState("idle");
+        } catch {
+          setState("failed");
+        }
+      },
+      () => setState("denied"),
+      { timeout: 10_000, maximumAge: 60_000 },
+    );
+  };
+
+  return (
+    <div className="mt-3">
+      <button
+        type="button"
+        onClick={locate}
+        disabled={state === "locating"}
+        className="inline-flex items-center gap-2 rounded-md bg-white px-3.5 py-2.5 text-caption text-muted shadow-[0_1px_2px_rgba(11,44,34,0.05)] transition-colors hover:text-ink disabled:opacity-60"
+      >
+        <svg viewBox="0 0 24 24" className="size-4" fill="none" aria-hidden>
+          <path
+            d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z"
+            stroke="currentColor"
+            strokeWidth="1.7"
+            strokeLinejoin="round"
+          />
+          <circle cx="12" cy="10" r="2.4" stroke="currentColor" strokeWidth="1.7" />
+        </svg>
+        {state === "locating" ? "Finding you…" : "Use my current location"}
+      </button>
+      {state === "denied" && (
+        <p className="mt-2 text-caption text-faint">
+          Location is blocked in your browser. Type the name instead.
+        </p>
+      )}
+      {state === "failed" && (
+        <p className="mt-2 text-caption text-faint">
+          Could not work out where you are. Type the name instead.
+        </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * When Nnneva may get in touch: a clock, or no window at all.
+ *
+ * A time input rather than three fixed choices, because "evenings" means
+ * something different to a nurse on nights than to everyone else. `any` is kept
+ * as its own state rather than a sentinel time, so "no preference" is a real
+ * answer and not 00:00.
+ */
+function ContactWindow({
+  answers,
+  set,
+}: {
+  answers: Answers;
+  set: <K extends keyof Answers>(key: K, value: Answers[K]) => void;
+}) {
+  const anyTime = answers.contactWindow === "any";
+  return (
+    <div className="max-w-[460px] rounded-[20px] bg-white px-7 py-6.5 shadow-[0_1px_3px_rgba(11,44,34,0.05),0_12px_32px_rgba(11,44,34,0.06)]">
+      <div className="flex gap-2">
+        <button
+          type="button"
+          aria-pressed={!anyTime}
+          onClick={() => set("contactWindow", "at")}
+          className={`flex-1 rounded-md px-4 py-2.5 text-small transition-colors ${
+            !anyTime ? "bg-green text-white" : "bg-surface text-muted hover:text-ink"
+          }`}
+        >
+          From a time
+        </button>
+        <button
+          type="button"
+          aria-pressed={anyTime}
+          onClick={() => set("contactWindow", "any")}
+          className={`flex-1 rounded-md px-4 py-2.5 text-small transition-colors ${
+            anyTime ? "bg-green text-white" : "bg-surface text-muted hover:text-ink"
+          }`}
+        >
+          Any time is fine
+        </button>
+      </div>
+
+      {!anyTime && (
+        <label className="mt-4 block">
+          <span className="mb-1.5 block text-[12px] text-muted-2">Reach me from</span>
+          <input
+            type="time"
+            value={answers.contactTime}
+            onChange={(e) => set("contactTime", e.target.value)}
+            className="w-full rounded-[11px] bg-surface px-4 py-3.5 text-[16px] text-ink outline-none focus:ring-2 focus:ring-green"
+          />
+        </label>
+      )}
+
+      <p className="mt-4.5 rounded-md bg-green-tint px-4 py-3.5 text-small text-ink" aria-live="polite">
+        {anyTime
+          ? "Nnneva will reach you whenever something needs you."
+          : `Anything that is not urgent waits until ${answers.contactTime}.`}
       </p>
     </div>
   );

@@ -220,6 +220,12 @@ class TrustedContact(Base, TimestampMixin):
     name: Mapped[str] = mapped_column(String(120))
     relationship_label: Mapped[str] = mapped_column(String(60), default="Partner")
 
+    # How to actually reach them. Both optional: a contact is useful for
+    # sharing inside the app before any channel is known, and asking for a
+    # phone number before it is needed would be asking for more than §02 allows.
+    phone: Mapped[str | None] = mapped_column(String(40), default=None)
+    email: Mapped[str | None] = mapped_column(String(255), default=None)
+
     can_see_shared_tasks: Mapped[bool] = mapped_column(Boolean, default=False)
     can_see_appointments: Mapped[bool] = mapped_column(Boolean, default=False)
     can_get_forwarded_reminders: Mapped[bool] = mapped_column(Boolean, default=False)

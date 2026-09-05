@@ -15,6 +15,8 @@ export type OnboardingAnswers = {
   help_areas: string[];
   contact_name?: string | null;
   contact_relationship?: string | null;
+  contact_phone?: string | null;
+  contact_email?: string | null;
   contact_can_see_shared_tasks?: boolean;
   contact_window?: string | null;
 };

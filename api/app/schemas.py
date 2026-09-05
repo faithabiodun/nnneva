@@ -49,6 +49,8 @@ class OnboardingIn(BaseModel):
     help_areas: list[str] = []
     contact_name: str | None = None
     contact_relationship: str | None = "Partner"
+    contact_phone: str | None = None
+    contact_email: str | None = None
     contact_can_see_shared_tasks: bool = False
     contact_window: str | None = None
 

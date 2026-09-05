@@ -83,11 +83,8 @@ export const STEPS: Step[] = [
     why: "Everything that is not urgent waits for the window you pick here. A reminder at a useless hour is one more thing to carry.",
     noteBg: "#FDF1F5",
     noteFg: "#0B2C22",
-    options: [
-      { label: "Evenings, after 18:00", sub: "Most people choose this" },
-      { label: "Mornings, from 08:00" },
-      { label: "Any time is fine" },
-    ],
+    // No options: this step is a clock plus an "any time" choice, so the answer
+    // is a time rather than one of a fixed few. See ContactWindow.
   },
 ];
 

@@ -28,6 +28,8 @@ def complete_onboarding(payload: OnboardingIn, user: CurrentUser, db: DbSession)
         contact = user.contacts[0] if user.contacts else TrustedContact(user_id=user.id, name="")
         contact.name = payload.contact_name.strip()
         contact.relationship_label = payload.contact_relationship or "Partner"
+        contact.phone = (payload.contact_phone or "").strip() or None
+        contact.email = (payload.contact_email or "").strip().lower() or None
         contact.can_see_shared_tasks = payload.contact_can_see_shared_tasks
         db.add(contact)
 
