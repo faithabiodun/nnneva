@@ -98,9 +98,9 @@ browser ──▶ Next.js server ──(bearer token)──▶ FastAPI ──▶
 ```
    web (Next.js)          API (FastAPI + Strands)        data
    ─────────────          ───────────────────────        ────
-   Pxxl             ──▶   Pxxl or ECS Express     ──▶   Pxxl Postgres
-                            │                            (or any managed)
-                            └──▶ Bedrock
+   Pxxl             ──▶   ECS Express Mode        ──▶   Postgres
+                            │  (image from ECR)          (Pxxl, Supabase,
+                            └──▶ Bedrock (task role)      RDS — any managed)
 ```
 
 ### The API — Amazon ECS Express Mode
@@ -126,8 +126,20 @@ conditioned to ECS, so the keys cannot hand those roles to anything else.
 export DATABASE_URL="postgresql+psycopg://..."
 export SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
 export WEB_ORIGIN="https://your-web-app"
+export GOOGLE_CLIENT_ID="....apps.googleusercontent.com"   # optional
 ./deploy/aws-ecs-express.sh
 ```
+
+`GOOGLE_CLIENT_ID` is optional and omitted from the task definition entirely
+when unset, rather than sent as an empty string — so a deploy that forgot it
+looks absent rather than deliberate. Everything else is required and the script
+refuses to run without it.
+
+**If you have no Docker daemon**, step 1 also runs unchanged in **AWS
+CloudShell** (Console → the terminal icon): it has Docker and the AWS CLI, is
+already authenticated as you, and builds inside AWS, so neither Docker Hub
+rate limits nor a restricted network gets in the way. Clone the repo there and
+run the same script.
 
 The deploy creates three IAM roles with distinct jobs — infrastructure (lets ECS
 manage the load balancer), execution (lets the agent pull the image and write
@@ -147,9 +159,10 @@ The image runs `alembic upgrade head` on boot. That is fine for one task; past a
 single instance, move it to a one-off invocation or concurrent starts race for
 the version table.
 
-### The database — Pxxl Postgres
+### The database
 
-Any managed Postgres works. Pxxl provisions one directly:
+Any managed Postgres works — RDS, Supabase, or Pxxl. Pxxl is the quickest to
+provision and needs no VPC wiring to reach from Express Mode:
 
 ```bash
 pxxl db create --name nnneva-db --type postgres
@@ -189,7 +202,10 @@ Set `API_BASE_URL` in the Pxxl dashboard to the deployed API's URL. It is
 deliberately not in the repo: `.env*` is excluded from the upload, and the local
 value points at `localhost:8000`.
 
-### The API on Pxxl — worth one attempt
+### Alternative: the API on Pxxl
+
+AWS is the supported path above. This is kept because it puts the whole stack
+on one platform if it works.
 
 The Pxxl CLI cannot *detect* a Python project. Its `detectFramework` knows only
 JavaScript frameworks and `.php`, and `detectRuntime` returns exactly one of

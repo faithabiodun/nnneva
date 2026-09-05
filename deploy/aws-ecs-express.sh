@@ -3,6 +3,7 @@
 # Deploy the Nnneva API to Amazon ECS Express Mode.
 #
 #   export DATABASE_URL=... SECRET_KEY=... WEB_ORIGIN=...
+#   export GOOGLE_CLIENT_ID=...     # optional; omit to leave Google sign-in off
 #   ./deploy/aws-ecs-express.sh
 #
 # Express Mode is AWS's named replacement for App Runner, which closed to new
@@ -143,8 +144,24 @@ printf '  logs %s\n' "$LOG_GROUP"
 # invocation before scaling past a single instance.
 
 CONTAINER=$(DB="$DATABASE_URL" SK="$SECRET_KEY" WO="$WEB_ORIGIN" \
+  GCID="${GOOGLE_CLIENT_ID:-}" \
   IMG="$IMAGE" LG="$LOG_GROUP" MODEL="$MODEL_ID" RG="$REGION" python3 - <<'PY'
 import json, os
+
+environment = [
+    {"name": "AGENT_ENGINE",      "value": "bedrock"},
+    {"name": "BEDROCK_MODEL_ID",  "value": os.environ["MODEL"]},
+    {"name": "AWS_REGION",        "value": os.environ["RG"]},
+    {"name": "WEB_ORIGIN",        "value": os.environ["WO"]},
+    {"name": "DATABASE_URL",      "value": os.environ["DB"]},
+    {"name": "SECRET_KEY",        "value": os.environ["SK"]},
+]
+
+# Google sign-in is optional. An empty entry is not the same as an absent one:
+# it would let a deploy that simply forgot the variable look deliberate.
+if os.environ.get("GCID"):
+    environment.append({"name": "GOOGLE_CLIENT_ID", "value": os.environ["GCID"]})
+
 print(json.dumps({
     "image": os.environ["IMG"],
     "containerPort": 8000,
@@ -152,14 +169,7 @@ print(json.dumps({
         "logGroup": os.environ["LG"],
         "logStreamPrefix": "api",
     },
-    "environment": [
-        {"name": "AGENT_ENGINE",      "value": "bedrock"},
-        {"name": "BEDROCK_MODEL_ID",  "value": os.environ["MODEL"]},
-        {"name": "AWS_REGION",        "value": os.environ["RG"]},
-        {"name": "WEB_ORIGIN",        "value": os.environ["WO"]},
-        {"name": "DATABASE_URL",      "value": os.environ["DB"]},
-        {"name": "SECRET_KEY",        "value": os.environ["SK"]},
-    ],
+    "environment": environment,
 }))
 PY
 )
