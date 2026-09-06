@@ -195,6 +195,7 @@ class ProfileOut(BaseModel):
     email: str
     phone: str | None
     avatar: str | None
+    tour_seen: bool
     due_date: date | None
     gestational_week: int | None
     trimester: str | None
@@ -273,6 +274,7 @@ class ProfilePatch(BaseModel):
     full_name: str | None = None
     phone: str | None = None
     avatar: str | None = None
+    tour_seen: bool | None = None
     # The pregnancy context, editable after the fact. due_date creates the
     # profile row when there is none, so someone who skipped onboarding can
     # fill it in from their profile instead of being sent back through a wizard.

@@ -138,6 +138,12 @@ class User(Base, TimestampMixin):
     # key rather than an image: no uploads, nothing to moderate, and it renders
     # the same everywhere without a round trip.
     avatar: Mapped[str | None] = mapped_column(String(20), default=None)
+    # When the welcome walkthrough was finished or skipped. Stored on the
+    # account rather than in the browser: having seen it once is a fact about
+    # the person, not about the device they happened to sign up on.
+    tour_seen_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None
+    )
 
     # Notification and retention preferences, kept as plain columns rather than
     # a JSON blob so they can be queried when reminders are dispatched.

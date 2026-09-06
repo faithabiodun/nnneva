@@ -132,6 +132,8 @@ export type Profile = {
   phone: string | null;
   /** One of the drawn avatar keys, or null for the initial. */
   avatar: string | null;
+  /** False until the welcome walkthrough has been finished or skipped. */
+  tour_seen: boolean;
   due_date: string | null;
   gestational_week: number | null;
   trimester: string | null;

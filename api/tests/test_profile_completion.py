@@ -97,3 +97,30 @@ def test_context_fields_are_ignored_without_a_due_date(client, fresh):
     assert r.status_code == 200
     assert r.json()["onboarded"] is False
     assert r.json()["care_location"] is None
+
+
+# ---- The welcome walkthrough ----------------------------------------------
+
+
+def test_a_new_account_has_not_seen_the_tour(client, fresh):
+    assert client.get("/profile", headers=fresh).json()["tour_seen"] is False
+
+
+def test_marking_the_tour_seen_sticks(client, fresh):
+    r = client.patch("/profile", headers=fresh, json={"tour_seen": True})
+    assert r.json()["tour_seen"] is True
+    assert client.get("/profile", headers=fresh).json()["tour_seen"] is True
+
+
+def test_the_tour_cannot_be_un_seen(client, fresh):
+    """One way only: re-showing a welcome tour would be nagging, not helping."""
+    client.patch("/profile", headers=fresh, json={"tour_seen": True})
+    client.patch("/profile", headers=fresh, json={"tour_seen": False})
+    assert client.get("/profile", headers=fresh).json()["tour_seen"] is True
+
+
+def test_other_profile_edits_do_not_disturb_it(client, fresh):
+    client.patch("/profile", headers=fresh, json={"tour_seen": True})
+    r = client.patch("/profile", headers=fresh, json={"full_name": "Ada N"})
+    assert r.json()["tour_seen"] is True
+    assert r.json()["full_name"] == "Ada N"
