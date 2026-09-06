@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { api } from "@/lib/api";
 import type {
   AgentRun,
+  ContactMessage,
   Appointment,
   ConversationDetail,
   ConversationSummary,
@@ -13,6 +14,7 @@ import type {
   Profile,
   Question,
   Task,
+  TrustedContactDetail,
 } from "@/lib/types";
 
 /* ---- Onboarding -------------------------------------------------------- */
@@ -145,4 +147,43 @@ export async function readConversation(id: string): Promise<ConversationDetail> 
 export async function deleteConversation(id: string): Promise<void> {
   await api.delete(`/agent/conversations/${id}`);
   revalidatePath("/chats");
+}
+
+/* ---- The trusted contact -------------------------------------------------- */
+
+export async function readContact(): Promise<TrustedContactDetail> {
+  return api.get<TrustedContactDetail>("/contact");
+}
+
+export async function inviteContact(): Promise<TrustedContactDetail> {
+  const contact = await api.post<TrustedContactDetail>("/contact/invite");
+  revalidatePath("/partner");
+  return contact;
+}
+
+export async function revokeInvite(): Promise<void> {
+  await api.delete("/contact/invite");
+  revalidatePath("/partner");
+}
+
+export async function listContactMessages(): Promise<ContactMessage[]> {
+  return api.get<ContactMessage[]>("/contact/messages");
+}
+
+export async function messageContact(body: string): Promise<ContactMessage> {
+  const message = await api.post<ContactMessage>("/contact/messages", { body });
+  revalidatePath("/partner");
+  return message;
+}
+
+export async function assignTask(taskId: string): Promise<void> {
+  await api.post(`/tasks/${taskId}/assign`);
+  revalidatePath("/partner");
+  revalidatePath("/tasks");
+}
+
+export async function unassignTask(taskId: string): Promise<void> {
+  await api.delete(`/tasks/${taskId}/assign`);
+  revalidatePath("/partner");
+  revalidatePath("/tasks");
 }

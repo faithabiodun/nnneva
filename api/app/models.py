@@ -241,12 +241,52 @@ class TrustedContact(Base, TimestampMixin):
     phone: Mapped[str | None] = mapped_column(String(40), default=None)
     email: Mapped[str | None] = mapped_column(String(255), default=None)
 
+    # The secret in their invite link. A capability, not a password: holding it
+    # is the whole authorisation, so it is long, random, and revocable by
+    # regenerating. They get no account — asking a partner to sign up to help is
+    # a barrier, and an account would be a second place her data lives.
+    access_token: Mapped[str | None] = mapped_column(String(64), unique=True, default=None)
+    invited_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+
     can_see_shared_tasks: Mapped[bool] = mapped_column(Boolean, default=False)
     can_see_appointments: Mapped[bool] = mapped_column(Boolean, default=False)
     can_get_forwarded_reminders: Mapped[bool] = mapped_column(Boolean, default=False)
     can_see_test_results: Mapped[bool] = mapped_column(Boolean, default=False)
 
     user: Mapped[User] = relationship(back_populates="contacts")
+    messages: Mapped[list["ContactMessage"]] = relationship(
+        back_populates="contact",
+        cascade="all, delete-orphan",
+        order_by="ContactMessage.created_at",
+    )
+
+
+class ContactMessage(Base, TimestampMixin):
+    """One message between the mother and her trusted contact.
+
+    Kept apart from the agent's conversations on purpose: this is a thread
+    between two people and the agent is not in it. Nothing here is sent to a
+    model, and nothing the agent knows leaks into it — what the contact learns
+    is only what she types or explicitly shares.
+    """
+
+    __tablename__ = "contact_messages"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    contact_id: Mapped[str] = mapped_column(
+        ForeignKey("trusted_contacts.id", ondelete="CASCADE"), index=True
+    )
+    # Denormalised so a message can be scoped to its owner without a join, which
+    # every read here does.
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+
+    body: Mapped[str] = mapped_column(Text)
+    # "user" for the mother, "contact" for the partner.
+    sender: Mapped[str] = mapped_column(String(10), default="user")
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+
+    contact: Mapped["TrustedContact"] = relationship(back_populates="messages")
 
 
 # ---------------------------------------------------------------------------
@@ -319,8 +359,14 @@ class Task(Base, TimestampMixin):
     owner: Mapped[TaskOwner] = mapped_column(Enum(TaskOwner), default=TaskOwner.user)
     created_by: Mapped[TaskOwner] = mapped_column(Enum(TaskOwner), default=TaskOwner.agent)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    # Set when she asks her partner to do this one. The task stays hers — it is
+    # on her list, in her account; the contact is only being asked.
+    assigned_contact_id: Mapped[str | None] = mapped_column(
+        ForeignKey("trusted_contacts.id", ondelete="SET NULL"), default=None, index=True
+    )
 
     user: Mapped[User] = relationship(back_populates="tasks")
+    assigned_contact: Mapped["TrustedContact | None"] = relationship()
     goal: Mapped[Goal | None] = relationship(back_populates="tasks")
     reminders: Mapped[list[Reminder]] = relationship(
         back_populates="task", cascade="all, delete-orphan"

@@ -23,6 +23,7 @@ from app.routers import (
     home,
     memory,
     onboarding,
+    partner,
     profile,
     tasks,
 )
@@ -49,6 +50,7 @@ app.add_middleware(
 
 for module in (
     auth, onboarding, home, agent, tasks, appointments, activity, memory, profile, approvals,
+    partner,
 ):
     app.include_router(module.router)
 

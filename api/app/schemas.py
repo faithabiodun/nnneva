@@ -67,6 +67,8 @@ class TaskOut(BaseModel):
     due_date: date | None
     goal_id: str | None
     created_by: str
+    # Set when she has asked her trusted contact to take this one on.
+    assigned_contact_id: str | None
 
 
 class GoalOut(BaseModel):
@@ -286,3 +288,49 @@ class ProfilePatch(BaseModel):
     retention: str | None = None
     notifications: dict[str, bool] | None = None
     trusted_contact_permissions: dict[str, bool] | None = None
+
+
+# ---- The trusted contact ---------------------------------------------------
+
+
+class ContactMessageIn(BaseModel):
+    body: str = Field(min_length=1, max_length=2000)
+
+
+class ContactMessageOut(BaseModel):
+    id: str
+    body: str
+    # "user" (the mother) or "contact" (the partner).
+    sender: str
+    created_at: datetime
+
+
+class TrustedContactOut(BaseModel):
+    id: str
+    name: str
+    relationship: str
+    phone: str | None
+    email: str | None
+    invited: bool
+    accepted: bool
+    # Only ever returned to her. The partner's own view never echoes it back.
+    access_token: str | None
+
+
+class PartnerTaskOut(BaseModel):
+    id: str
+    title: str
+    detail: str
+    due_date: date | None
+    done: bool
+
+
+class PartnerViewOut(BaseModel):
+    """What the link shows. Deliberately small."""
+
+    contact_name: str
+    relationship: str
+    mother_name: str
+    can_see_tasks: bool
+    tasks: list[PartnerTaskOut]
+    messages: list[ContactMessageOut]

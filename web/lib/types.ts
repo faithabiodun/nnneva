@@ -15,6 +15,8 @@ export type TaskStatus =
   | "Cancelled";
 
 export type Task = {
+  /** Set when she has asked her trusted contact to take this one on. */
+  assigned_contact_id?: string | null;
   id: string;
   title: string;
   detail: string;
@@ -164,3 +166,40 @@ export type Home = {
 };
 
 export type Token = { access_token: string; token_type: string; onboarded: boolean };
+
+export type ContactMessage = {
+  id: string;
+  body: string;
+  /** "user" is her, "contact" is the partner. */
+  sender: "user" | "contact";
+  created_at: string;
+};
+
+export type TrustedContactDetail = {
+  id: string;
+  name: string;
+  relationship: string;
+  phone: string | null;
+  email: string | null;
+  invited: boolean;
+  accepted: boolean;
+  /** Only ever sent to her; the partner's own view never echoes it. */
+  access_token: string | null;
+};
+
+export type PartnerTask = {
+  id: string;
+  title: string;
+  detail: string;
+  due_date: string | null;
+  done: boolean;
+};
+
+export type PartnerView = {
+  contact_name: string;
+  relationship: string;
+  mother_name: string;
+  can_see_tasks: boolean;
+  tasks: PartnerTask[];
+  messages: ContactMessage[];
+};

@@ -16,13 +16,20 @@ import { absoluteUrl } from "@/lib/site";
 const SIGNED_IN_ONLY = [
   "/home",
   "/agent",
+  "/chats",
   "/tasks",
   "/appointments",
   "/activity",
-  "/memory",
+  "/partner",
   "/profile",
   "/onboarding",
 ];
+
+// The trusted contact's own pages live under /helping, deliberately outside
+// the list above. The prefix match would otherwise swallow them — they are
+// reached with a link rather than a session, and the token is the whole
+// authorisation. Keeping them on a separate path means the two can never be
+// confused for one another.
 
 const SIGNED_OUT_ONLY = ["/login", "/signup"];
 
