@@ -45,7 +45,7 @@ export function MemoryView({ memories }: { memories: MemoryItem[] }) {
                     remaining.length === 1 ? "" : "s"
                   } about your pregnancy.`}
             </p>
-            <p className="mt-1.5 text-small text-green-soft">
+            <p className="mt-1.5 text-small text-green-ink-soft">
               Nothing here is shared. Remove anything you would rather it forgot.
             </p>
           </div>
@@ -54,7 +54,7 @@ export function MemoryView({ memories }: { memories: MemoryItem[] }) {
         {groups.length === 0 ? (
           <p className="card mt-5 p-8 text-center text-body text-muted">
             Memory fills up as you use Nnneva.{" "}
-            <Link href="/agent" className="font-medium text-pink hover:underline">
+            <Link href="/agent" className="font-medium text-pink-ink hover:underline">
               Tell it something
             </Link>{" "}
             and it will keep what matters.
@@ -78,7 +78,7 @@ export function MemoryView({ memories }: { memories: MemoryItem[] }) {
                         <button
                           type="button"
                           onClick={() => forget(m.id)}
-                          className="ml-auto shrink-0 text-caption font-medium text-pink hover:underline"
+                          className="ml-auto shrink-0 text-caption font-medium text-pink-ink hover:underline"
                         >
                           Forget
                         </button>

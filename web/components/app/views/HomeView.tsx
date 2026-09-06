@@ -61,7 +61,7 @@ export function HomeView({
           {/* ---- The one thing that needs a decision ---------------------- */}
           {approval && (
             <section className="animate-rise rounded-lg bg-pink-wash p-6">
-              <p className="eyebrow text-pink-deep">Waiting for you</p>
+              <p className="eyebrow text-pink-ink-deep">Waiting for you</p>
               <p className="mt-3 text-lead text-ink">{approval.question}</p>
               {approval.why && <p className="mt-2 text-small text-muted">{approval.why}</p>}
               <div className="mt-5 flex flex-wrap gap-2">
@@ -91,7 +91,7 @@ export function HomeView({
             {home.today.length === 0 ? (
               <p className="mt-4 text-body text-muted">
                 Nothing is due today.{" "}
-                <Link href="/agent" className="font-medium text-pink hover:underline">
+                <Link href="/agent" className="font-medium text-pink-ink hover:underline">
                   Give Nnneva something to handle
                 </Link>
                 .
@@ -133,7 +133,7 @@ export function HomeView({
             <section className="card p-6">
               <div className="flex flex-wrap items-baseline justify-between gap-3">
                 <h2 className="card-title">Your active plans</h2>
-                <Link href="/tasks" className="text-caption font-medium text-pink">
+                <Link href="/tasks" className="text-caption font-medium text-pink-ink">
                   Open tasks
                 </Link>
               </div>
@@ -168,7 +168,7 @@ export function HomeView({
               <div className="mt-4 flex items-center gap-4">
                 <span className="grid size-14 shrink-0 place-items-center rounded-md bg-ink text-center leading-none text-canvas">
                   <span className="block">
-                    <span className="block text-[10px] tracking-[0.1em] uppercase text-green-soft">
+                    <span className="block text-[10px] tracking-[0.1em] uppercase text-green-ink-soft">
                       {weekdayShort(visit.starts_at)}
                     </span>
                     <span className="tnum mt-1 block font-display text-[20px]">
@@ -196,7 +196,7 @@ export function HomeView({
           <section className="card p-6">
             <div className="flex flex-wrap items-baseline justify-between gap-3">
               <h2 className="card-title">Nnneva activity</h2>
-              <Link href="/activity" className="text-caption font-medium text-pink">
+              <Link href="/activity" className="text-caption font-medium text-pink-ink">
                 All
               </Link>
             </div>

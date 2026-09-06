@@ -35,7 +35,16 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${outfit.variable} ${playfair.variable}`}>
+    <html lang="en" className={`${outfit.variable} ${playfair.variable}`} suppressHydrationWarning>
+      <head>
+        {/* Runs before paint: without it a dark-mode reader gets a white flash
+            on every navigation, which at night is genuinely unpleasant. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem("nnneva_theme");if(t==="dark"||t==="light")document.documentElement.setAttribute("data-theme",t)}catch(e){}`,
+          }}
+        />
+      </head>
       <body>
         <NoDrag />
         {children}

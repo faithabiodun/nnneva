@@ -70,7 +70,7 @@ export function AgentRail() {
                 {step.kind === "chips" && (
                   <ul className="flex flex-wrap gap-2">
                     {step.chips.map((c) => (
-                      <li key={c} className="pill bg-green-wash text-green">
+                      <li key={c} className="pill bg-green-wash text-green-ink">
                         {c}
                       </li>
                     ))}
@@ -115,7 +115,7 @@ export function AgentRail() {
 
                 {step.kind === "approval" && (
                   <div className="rounded-md bg-pink-wash p-5">
-                    <p className="eyebrow text-pink-deep">{step.approval.eyebrow}</p>
+                    <p className="eyebrow text-pink-ink-deep">{step.approval.eyebrow}</p>
                     <p className="mt-2.5 text-body text-ink">{step.approval.question}</p>
                     <div className="mt-4 flex flex-wrap gap-2">
                       <span className="btn btn-pink py-2.5 text-small">{step.approval.accept}</span>
@@ -148,7 +148,7 @@ export function AgentRail() {
 
 function Tick() {
   return (
-    <svg viewBox="0 0 16 16" className="size-4 shrink-0 text-green" fill="none" aria-hidden>
+    <svg viewBox="0 0 16 16" className="size-4 shrink-0 text-green-ink" fill="none" aria-hidden>
       <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.3" opacity="0.35" />
       <path
         d="M5 8.2 7 10.2 11 5.8"

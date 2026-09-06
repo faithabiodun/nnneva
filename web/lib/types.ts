@@ -113,6 +113,8 @@ export type Profile = {
   full_name: string;
   email: string;
   phone: string | null;
+  /** One of the drawn avatar keys, or null for the initial. */
+  avatar: string | null;
   due_date: string | null;
   gestational_week: number | null;
   trimester: string | null;

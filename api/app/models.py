@@ -134,6 +134,10 @@ class User(Base, TimestampMixin):
     password_hash: Mapped[str | None] = mapped_column(String(255), default=None)
     full_name: Mapped[str] = mapped_column(String(120))
     phone: Mapped[str | None] = mapped_column(String(40), default=None)
+    # One of a fixed set of drawn avatars, or None for the initial. Stored as a
+    # key rather than an image: no uploads, nothing to moderate, and it renders
+    # the same everywhere without a round trip.
+    avatar: Mapped[str | None] = mapped_column(String(20), default=None)
 
     # Notification and retention preferences, kept as plain columns rather than
     # a JSON blob so they can be queried when reminders are dispatched.

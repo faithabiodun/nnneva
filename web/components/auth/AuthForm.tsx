@@ -27,7 +27,7 @@ export function AuthForm({
 }) {
   const [state, formAction] = useActionState<AuthState, FormData>(action, null);
 
-  const labelClass = dark ? "text-green-soft" : "text-muted";
+  const labelClass = dark ? "text-green-ink-soft" : "text-muted";
   const inputClass = dark
     ? "bg-white/8 text-white placeholder:text-white/35"
     : "bg-surface text-ink-2 placeholder:text-faint";

@@ -13,11 +13,11 @@ const FILTERS = ["All", "In progress", "Awaiting approval", "Done"] as const;
 type Filter = (typeof FILTERS)[number];
 
 const STATUS_TONE: Record<TaskStatus, string> = {
-  Complete: "bg-green-wash text-green",
+  Complete: "bg-green-wash text-green-ink",
   "In progress": "bg-[#EAF0FA] text-[#3A5A8C]",
   Scheduled: "bg-surface-2 text-muted-2",
   "To do": "bg-surface-2 text-muted-2",
-  "Awaiting approval": "bg-pink-wash text-pink-deep",
+  "Awaiting approval": "bg-pink-wash text-pink-ink-deep",
   Cancelled: "bg-surface-2 text-faint",
 };
 
@@ -133,7 +133,7 @@ export function TasksView({ goals }: { goals: Goal[] }) {
               {goals.length === 0 ? (
                 <>
                   No plans yet.{" "}
-                  <Link href="/agent" className="font-medium text-pink hover:underline">
+                  <Link href="/agent" className="font-medium text-pink-ink hover:underline">
                     Tell Nnneva what you need
                   </Link>{" "}
                   and it will build one.

@@ -74,15 +74,20 @@ export function dueDateProblem(a: Answers): string | null {
   if (Number.isNaN(due)) return "Pick a real date.";
   const days = Math.floor((due - Date.now()) / 86_400_000);
   if (days > 300) return "That is further off than a pregnancy lasts — check the year.";
-  if (days < -60) return "That date has passed. If your baby has arrived, Nnneva is not the right tool yet.";
+  if (days < 0) return "A due date cannot be in the past. Pick a date from today onwards.";
   return null;
 }
 
-/** The bounds a due date can sensibly fall between, for the picker itself. */
+/**
+ * The bounds a due date can sensibly fall between, for the picker itself.
+ *
+ * The floor is today: a due date in the past is not a due date, and someone
+ * whose baby has arrived is not who this product is for yet.
+ */
 export function dueDateRange(): { min: string; max: string } {
   const iso = (offsetDays: number) =>
     new Date(Date.now() + offsetDays * 86_400_000).toISOString().slice(0, 10);
-  return { min: iso(-60), max: iso(300) };
+  return { min: iso(0), max: iso(300) };
 }
 
 /** How the contact window reads once stored. */

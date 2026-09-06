@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Mark } from "@/components/Brand";
 import { useShell, type Shell } from "./ShellContext";
 import { NAV } from "./nav";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 /**
  * The app shell: a dark sidebar against the warm canvas, with the page title in
@@ -83,6 +84,11 @@ export function AppShell({
           {/* The week-and-due-date pill is the default: it is the one piece of
               context worth carrying on every screen. A page can replace it. */}
           <div className="ml-auto flex shrink-0 items-center gap-2.5">
+            {/* Hidden on the narrowest screens, where the header has no room to
+                spare; it is still reachable in Profile → Account. */}
+            <span className="hidden sm:inline-flex">
+              <ThemeToggle />
+            </span>
             {aside ?? <StagePill shell={shell} />}
           </div>
         </div>
@@ -112,7 +118,7 @@ function SidebarBody({
             <span className="font-display text-[18px] leading-none font-semibold text-white">
               Nnneva
             </span>
-            <span className="mt-0.5 text-[10px] text-green-mid">maternal-care agent</span>
+            <span className="mt-0.5 text-[10px] text-green-ink-mid">maternal-care agent</span>
           </span>
         </Link>
         {onClose && (
@@ -120,7 +126,7 @@ function SidebarBody({
             type="button"
             aria-label="Close navigation"
             onClick={onClose}
-            className="ml-auto grid size-8 place-items-center rounded-md text-green-soft"
+            className="ml-auto grid size-8 place-items-center rounded-md text-green-ink-soft"
           >
             <svg viewBox="0 0 20 20" className="size-4.5" fill="none" aria-hidden>
               <path d="M5.5 5.5l9 9M14.5 5.5l-9 9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
@@ -138,7 +144,7 @@ function SidebarBody({
               href={n.href}
               aria-current={active ? "page" : undefined}
               className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-[14.5px] transition-colors ${
-                active ? "bg-white/10 text-white" : "text-green-soft hover:bg-white/5 hover:text-white"
+                active ? "bg-white/10 text-white" : "text-green-ink-soft hover:bg-white/5 hover:text-white"
               }`}
             >
               <svg viewBox="0 0 24 24" className="size-4.5 shrink-0" fill="none" aria-hidden>
@@ -172,7 +178,7 @@ function SidebarBody({
           </span>
           <span className="min-w-0">
             <span className="block truncate text-small text-white">{shell.fullName}</span>
-            <span className="block text-[11.5px] text-green-mid">
+            <span className="block text-[11.5px] text-green-ink-mid">
               {shell.gestationalWeek === null
                 ? "Setup not finished"
                 : `${shell.gestationalWeek} weeks pregnant`}
@@ -193,7 +199,7 @@ function StagePill({ shell }: { shell: Shell }) {
     timeZone: "UTC",
   });
   return (
-    <span className="pill hidden bg-green-wash text-green sm:inline-flex">
+    <span className="pill hidden bg-green-wash text-green-ink sm:inline-flex">
       Week {shell.gestationalWeek} · Due {due}
     </span>
   );

@@ -5,6 +5,8 @@ import { useState, useTransition } from "react";
 import { logOut } from "@/app/actions/auth";
 import { updateProfile } from "@/app/actions/app";
 import { AppShell } from "@/components/app/AppShell";
+import { AVATARS, Avatar } from "@/components/app/Avatar";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { EditField, ReadField, ToggleRow } from "@/components/app/Bits";
 import { HELP_AREAS } from "@/lib/onboarding";
 import type { Profile } from "@/lib/types";
@@ -75,19 +77,36 @@ export function ProfileView({ profile }: { profile: Profile }) {
     );
   };
 
-  const initial = current.full_name.trim().charAt(0).toUpperCase() || "?";
-
   return (
     <AppShell title="Profile and preferences" subtitle="Context, privacy and notifications">
       <div className="grid max-w-[1100px] gap-5.5 lg:grid-cols-[236px_1fr] lg:items-start">
         {/* ---- Who, and which section ------------------------------------- */}
         <div className="card min-w-0 p-3.5">
           <div className="flex flex-col items-center px-2 pt-4 pb-5">
-            <span className="grid size-19 place-items-center rounded-full bg-green font-display text-[28px] font-semibold text-white">
-              {initial}
-            </span>
+            <Avatar avatar={current.avatar} name={current.full_name} size={76} />
             <p className="mt-3 text-[16px] font-medium text-ink">{current.full_name}</p>
             <p className="mt-0.5 text-caption text-faint">{current.email}</p>
+
+            <div className="mt-4 flex flex-wrap justify-center gap-1.5" role="radiogroup" aria-label="Avatar">
+              {[null, ...AVATARS].map((key) => {
+                const on = (current.avatar ?? null) === key;
+                return (
+                  <button
+                    key={key ?? "initial"}
+                    type="button"
+                    role="radio"
+                    aria-checked={on}
+                    aria-label={key ? `Avatar: ${key}` : "Use my initial"}
+                    onClick={() => save({ avatar: key }, { ...current, avatar: key })}
+                    className={`rounded-full p-0.5 transition-shadow ${
+                      on ? "ring-2 ring-green" : "hover:ring-2 hover:ring-line"
+                    }`}
+                  >
+                    <Avatar avatar={key} name={current.full_name} size={30} />
+                  </button>
+                );
+              })}
+            </div>
           </div>
           <div className="scroll-x flex gap-0.5 lg:flex-col" role="tablist" aria-label="Settings">
             {TABS.map((t) => (
@@ -170,7 +189,7 @@ export function ProfileView({ profile }: { profile: Profile }) {
                         }}
                         className={`pill text-caption transition-colors ${
                           on
-                            ? "bg-green-wash text-green"
+                            ? "bg-green-wash text-green-ink"
                             : "bg-surface text-muted hover:bg-surface-2 hover:text-ink"
                         }`}
                       >
@@ -247,7 +266,7 @@ export function ProfileView({ profile }: { profile: Profile }) {
                   product's promise rather than another setting. */}
               <section className="rounded-lg bg-ink p-6.5">
                 <h2 className="card-title mb-1.5 !text-white">Sharing outside your account</h2>
-                <p className="text-small leading-[1.6] text-green-soft">
+                <p className="text-small leading-[1.6] text-green-ink-soft">
                   Nothing about your pregnancy leaves Nnneva without an approval from you, and the
                   approval is asked for every single time. Nnneva never sells or trades your data.
                 </p>
@@ -261,7 +280,7 @@ export function ProfileView({ profile }: { profile: Profile }) {
                 <>
                   <h2 className="card-title mb-1.5 flex flex-wrap items-center gap-3">
                     Trusted contact
-                    <span className="pill bg-green-wash text-micro text-green">
+                    <span className="pill bg-green-wash text-micro text-green-ink">
                       {current.trusted_contact.name}
                     </span>
                   </h2>
@@ -302,6 +321,16 @@ export function ProfileView({ profile }: { profile: Profile }) {
                 <ReadField label="Phone" value={current.phone ?? "Not set"} />
                 <ReadField label="Due date" value={current.due_date ?? "Not set"} />
               </dl>
+              <div className="mt-6 flex items-center justify-between gap-4 border-t border-line pt-5">
+                <div className="min-w-0">
+                  <p className="text-small text-ink">Appearance</p>
+                  <p className="mt-0.5 text-caption text-muted-2">
+                    Follows your device unless you choose otherwise.
+                  </p>
+                </div>
+                <ThemeToggle />
+              </div>
+
               <form action={logOut} className="mt-5">
                 <button type="submit" className="btn btn-quiet">
                   Log out

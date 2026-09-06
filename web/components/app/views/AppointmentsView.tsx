@@ -26,7 +26,7 @@ export function AppointmentsView({
       <AppShell title="Appointments" subtitle="Preparation for your next visit">
         <p className="card max-w-[560px] p-8 text-body text-muted">
           No appointment is scheduled.{" "}
-          <Link href="/agent" className="font-medium text-pink hover:underline">
+          <Link href="/agent" className="font-medium text-pink-ink hover:underline">
             Tell Nnneva when your next visit is
           </Link>{" "}
           and it will prepare for it.
@@ -72,13 +72,13 @@ export function AppointmentsView({
             <div className="flex flex-wrap items-center gap-5.5">
               <p className="grid size-22 flex-none place-items-center rounded-xl bg-ink text-center text-canvas">
                 <span>
-                  <span className="block text-[11px] tracking-[0.1em] uppercase text-green-mid">
+                  <span className="block text-[11px] tracking-[0.1em] uppercase text-green-ink-mid">
                     {monthShort(visit.starts_at)}
                   </span>
                   <span className="tnum block font-display text-[34px] leading-[1.05] font-semibold">
                     {dayOfMonth(visit.starts_at)}
                   </span>
-                  <span className="block text-[11px] text-green-mid">
+                  <span className="block text-[11px] text-green-ink-mid">
                     {weekdayLong(visit.starts_at)}
                   </span>
                 </span>

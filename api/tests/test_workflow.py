@@ -188,11 +188,21 @@ def test_an_appointment_she_names_is_recorded_then_prepared_for(client, signed_u
     headers = signed_up
     before = db.scalar(select(func.count()).select_from(Appointment))
 
+    # A weekday far enough out that it cannot land on the fixture's own
+    # appointment, which sits two days from today. Naming Tuesday outright made
+    # this test fail every Sunday — and fail for the right reason, because the
+    # agent correctly prepared the visit it already had rather than booking a
+    # second one on the same day.
+    from datetime import date, timedelta
+
+    named_day = date.today() + timedelta(days=5)
+    weekday = named_day.strftime("%A")
+
     run = client.post(
         "/agent/runs",
         headers=headers,
         json={
-            "message": "I have a growth scan next Tuesday. Please prepare questions for it "
+            "message": f"I have a growth scan next {weekday}. Please prepare questions for it "
             "and remind me the evening before."
         },
     ).json()

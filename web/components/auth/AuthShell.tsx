@@ -53,7 +53,7 @@ export function Divider({ label, dark = false }: { label: string; dark?: boolean
   return (
     <div className="my-5 flex items-center gap-3">
       <span className={`h-px flex-1 ${dark ? "bg-white/15" : "bg-surface-3"}`} />
-      <span className={`text-[12px] ${dark ? "text-green-mid" : "text-faint"}`}>{label}</span>
+      <span className={`text-[12px] ${dark ? "text-green-ink-mid" : "text-faint"}`}>{label}</span>
       <span className={`h-px flex-1 ${dark ? "bg-white/15" : "bg-surface-3"}`} />
     </div>
   );

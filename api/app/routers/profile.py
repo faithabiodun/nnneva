@@ -32,6 +32,7 @@ def profile_payload(user: User) -> ProfileOut:
         full_name=user.full_name,
         email=user.email,
         phone=user.phone,
+        avatar=user.avatar,
         due_date=profile.due_date if profile else None,
         gestational_week=profile.gestational_week if profile else None,
         trimester=profile.trimester if profile else None,
@@ -65,7 +66,7 @@ def read_profile(user: CurrentUser) -> ProfileOut:
 
 @router.patch("", response_model=ProfileOut)
 def update_profile(payload: ProfilePatch, user: CurrentUser, db: DbSession) -> ProfileOut:
-    for field in ("full_name", "phone", "contact_window", "retention"):
+    for field in ("full_name", "phone", "avatar", "contact_window", "retention"):
         value = getattr(payload, field)
         if value is not None:
             setattr(user, field, value)
