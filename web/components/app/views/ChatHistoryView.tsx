@@ -83,7 +83,14 @@ export function ChatHistoryView({
     });
   };
 
-  let lastGroup = "";
+  // Each thread carries its own date heading, or null when the thread above
+  // already carries it. Derived up front rather than tracked while mapping:
+  // a variable reassigned mid-render is read back stale on the next one.
+  const threads = conversations.map((c, i) => {
+    const group = groupOf(c.last_message_at);
+    const above = i === 0 ? null : groupOf(conversations[i - 1].last_message_at);
+    return { conversation: c, heading: group === above ? null : group };
+  });
 
   return (
     <AppShell
@@ -110,9 +117,7 @@ export function ChatHistoryView({
             </p>
           ) : (
             <ul className="flex max-h-[62vh] flex-col gap-0.5 overflow-y-auto">
-              {conversations.map((c) => {
-                const group = groupOf(c.last_message_at);
-                const heading = group !== lastGroup ? ((lastGroup = group), group) : null;
+              {threads.map(({ conversation: c, heading }) => {
                 const open = c.id === conversation?.id;
                 return (
                   <li key={c.id}>

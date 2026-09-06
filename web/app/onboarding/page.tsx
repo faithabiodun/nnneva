@@ -9,7 +9,6 @@ import { ClockPicker } from "@/components/onboarding/ClockPicker";
 import { DueDateCalendar } from "@/components/onboarding/DueDateCalendar";
 import {
   EMPTY,
-  contactWindowLabel,
   dueDateProblem,
   dueDateRange,
   RELATIONSHIPS,

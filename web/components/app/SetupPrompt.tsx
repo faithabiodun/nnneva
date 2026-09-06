@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 /**
  * Shown across the signed-in app until the pregnancy context exists.
@@ -18,31 +18,41 @@ import { useEffect, useState } from "react";
  */
 const DISMISSED_KEY = "nnneva_setup_prompt_dismissed";
 
-export function SetupPrompt({ onboarded }: { onboarded: boolean }) {
-  // Start hidden and reveal after mount: reading localStorage during render
-  // would mismatch the server-rendered HTML.
-  const [show, setShow] = useState(false);
+/* The dismissal lives in localStorage, which React cannot see. Reading it
+   during render would disagree with the server-rendered HTML, so it is
+   modelled as what it is — an external store React subscribes to. The server
+   snapshot says "dismissed" so nothing renders until hydration is done. */
+const listeners = new Set<() => void>();
 
-  useEffect(() => {
-    if (onboarded) return;
-    try {
-      setShow(window.localStorage.getItem(DISMISSED_KEY) !== "1");
-    } catch {
-      // Private browsing, or storage blocked. Showing it is the safer default.
-      setShow(true);
-    }
-  }, [onboarded]);
-
-  if (onboarded || !show) return null;
-
-  const dismiss = () => {
-    setShow(false);
-    try {
-      window.localStorage.setItem(DISMISSED_KEY, "1");
-    } catch {
-      // Not being able to remember the dismissal is not worth an error.
-    }
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
   };
+}
+
+function isDismissed() {
+  try {
+    return window.localStorage.getItem(DISMISSED_KEY) === "1";
+  } catch {
+    // Private browsing, or storage blocked. Showing it is the safer default.
+    return false;
+  }
+}
+
+function dismiss() {
+  try {
+    window.localStorage.setItem(DISMISSED_KEY, "1");
+  } catch {
+    // Not being able to remember the dismissal is not worth an error.
+  }
+  for (const listener of listeners) listener();
+}
+
+export function SetupPrompt({ onboarded }: { onboarded: boolean }) {
+  const dismissed = useSyncExternalStore(subscribe, isDismissed, () => true);
+
+  if (onboarded || dismissed) return null;
 
   return (
     <div
