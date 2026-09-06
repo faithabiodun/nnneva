@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 import time
+from datetime import datetime, timezone
 from dataclasses import dataclass
 
 from sqlalchemy.orm import Session
@@ -26,10 +27,12 @@ from app.agent import scripted
 from app.agent import tools as T
 from app.agent.prompt import SYSTEM_PROMPT
 from app.agent.safety import Screening, screen, scrub
+from app.agent.scripted import looks_like_a_question
 from app.config import get_settings
 from app.models import (
     ActionResult,
     AgentRun,
+    Conversation,
     Goal,
     GoalStatus,
     Plan,
@@ -49,7 +52,13 @@ class RunOutcome:
     screening: Screening
 
 
-def run_agent(db: Session, user: User, message: str, goal_title: str | None = None) -> RunOutcome:
+def run_agent(
+    db: Session,
+    user: User,
+    message: str,
+    goal_title: str | None = None,
+    conversation: Conversation | None = None,
+) -> RunOutcome:
     """Take one message from the user and do the work it implies."""
     started = time.perf_counter()
 
@@ -59,6 +68,7 @@ def run_agent(db: Session, user: User, message: str, goal_title: str | None = No
 
     run = AgentRun(
         user_id=user.id,
+        conversation_id=conversation.id if conversation else None,
         prompt=message,
         status=RunStatus.running,
         safety_band=screening.band,
@@ -67,8 +77,14 @@ def run_agent(db: Session, user: User, message: str, goal_title: str | None = No
     db.add(run)
     db.flush()
 
+    if conversation is not None:
+        conversation.last_message_at = datetime.now(timezone.utc)
+
     goal = None
-    if not screening.stops_automation:
+    # A question creates no goal. A goal is a piece of work; asking what a
+    # glucose test is should not open one, or the plan list fills with entries
+    # that were never work.
+    if not screening.stops_automation and not looks_like_a_question(message):
         goal = Goal(
             user_id=user.id,
             title=(goal_title or _goal_title(message)),
@@ -82,6 +98,8 @@ def run_agent(db: Session, user: User, message: str, goal_title: str | None = No
 
     box = T.Toolbox(db=db, user=user, run=run, goal=goal)
 
+    history = _history_for(conversation, upto=run.id)
+
     settings = get_settings()
     reply = ""
     if settings.use_bedrock:
@@ -90,7 +108,7 @@ def run_agent(db: Session, user: User, message: str, goal_title: str | None = No
         # fallback do it again, so the user would see everything twice.
         savepoint = db.begin_nested()
         try:
-            reply = _run_bedrock(box, message, settings, screening)
+            reply = _run_bedrock(box, message, settings, screening, history)
             run.engine = "bedrock"
             savepoint.commit()
         except Exception as exc:  # noqa: BLE001 — every Bedrock failure lands here
@@ -190,7 +208,13 @@ def _write_plan_steps(db: Session, run: AgentRun, box: T.Toolbox, goal: Goal | N
 # ---------------------------------------------------------------------------
 
 
-def _run_bedrock(box: T.Toolbox, message: str, settings, screening: Screening) -> str:
+def _run_bedrock(
+    box: T.Toolbox,
+    message: str,
+    settings,
+    screening: Screening,
+    history: list[dict] | None = None,
+) -> str:
     """Run a real Strands agent over Bedrock.
 
     Imported lazily so the service starts, and the scripted path works, without
@@ -322,6 +346,9 @@ def _run_bedrock(box: T.Toolbox, message: str, settings, screening: Screening) -
     agent = Agent(
         model=model,
         system_prompt=SYSTEM_PROMPT,
+        # The thread so far. Without it every message is the first one, and
+        # "book it for then" has nothing to point at.
+        messages=history or [],
         tools=[
             _context, _safety, _create_task, _update_task,
             _reminder, _appointment, _prep, _memory, _share,
@@ -332,6 +359,28 @@ def _run_bedrock(box: T.Toolbox, message: str, settings, screening: Screening) -
 
     result = agent(message)
     return _text_of(result)
+
+
+def _history_for(conversation: Conversation | None, upto: str) -> list[dict]:
+    """Earlier turns of this thread, in the shape Strands expects.
+
+    Capped at the last twelve exchanges. A pregnancy conversation can run for
+    months, and sending all of it would cost more with every message while
+    adding nothing — what matters for "book it then" is the recent past.
+
+    The current run is excluded: it is already in the database by the time this
+    is called, and passing it as history as well would show the model its own
+    question twice.
+    """
+    if conversation is None:
+        return []
+    turns: list[dict] = []
+    for past in conversation.runs:
+        if past.id == upto or not past.reply:
+            continue
+        turns.append({"role": "user", "content": [{"text": past.prompt}]})
+        turns.append({"role": "assistant", "content": [{"text": past.reply}]})
+    return turns[-24:]
 
 
 def _text_of(result) -> str:

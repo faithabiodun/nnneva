@@ -164,6 +164,7 @@ class ApprovalOut(BaseModel):
 class RunOut(BaseModel):
     model_config = ORM
     id: str
+    conversation_id: str | None
     prompt: str
     reply: str
     status: str
@@ -231,6 +232,27 @@ class ActivityDayOut(BaseModel):
 
 class AgentMessageIn(BaseModel):
     message: str = Field(min_length=1, max_length=4000)
+    # Omit to start a new thread. The API never guesses which conversation a
+    # message belongs to: an unmarked message continuing whichever thread was
+    # most recent would silently attach a new subject to an old one.
+    conversation_id: str | None = None
+
+
+class ConversationOut(BaseModel):
+    """A thread in the history list."""
+
+    id: str
+    title: str
+    last_message_at: datetime
+    message_count: int
+    preview: str
+
+
+class ConversationDetailOut(BaseModel):
+    id: str
+    title: str
+    last_message_at: datetime
+    runs: list["RunOut"]
 
 
 class TaskPatch(BaseModel):

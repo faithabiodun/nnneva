@@ -4,7 +4,16 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { api } from "@/lib/api";
-import type { AgentRun, Appointment, MemoryItem, Profile, Question, Task } from "@/lib/types";
+import type {
+  AgentRun,
+  Appointment,
+  ConversationDetail,
+  ConversationSummary,
+  MemoryItem,
+  Profile,
+  Question,
+  Task,
+} from "@/lib/types";
 
 /* ---- Onboarding -------------------------------------------------------- */
 
@@ -28,11 +37,19 @@ export async function completeOnboarding(answers: OnboardingAnswers): Promise<vo
 
 /* ---- The agent ---------------------------------------------------------- */
 
-export async function askNnneva(message: string): Promise<AgentRun> {
-  const run = await api.post<AgentRun>("/agent/runs", { message });
+export async function askNnneva(
+  message: string,
+  conversationId?: string,
+): Promise<AgentRun> {
+  const run = await api.post<AgentRun>("/agent/runs", {
+    message,
+    // Omitted rather than null when absent: the API treats a missing id as
+    // "start a new thread", and it should never be asked to guess.
+    ...(conversationId ? { conversation_id: conversationId } : {}),
+  });
   // A run creates tasks, appointments, memories and activity, so every screen
   // that reads them is now stale.
-  for (const path of ["/home", "/tasks", "/appointments", "/activity", "/memory"]) {
+  for (const path of ["/home", "/tasks", "/appointments", "/activity", "/chats"]) {
     revalidatePath(path);
   }
   return run;
@@ -111,4 +128,19 @@ export async function updateProfile(patch: ProfilePatch): Promise<Profile> {
 
 export async function listMemories(): Promise<MemoryItem[]> {
   return api.get<MemoryItem[]>("/memory");
+}
+
+/* ---- Conversations -------------------------------------------------------- */
+
+export async function listConversations(): Promise<ConversationSummary[]> {
+  return api.get<ConversationSummary[]>("/agent/conversations");
+}
+
+export async function readConversation(id: string): Promise<ConversationDetail> {
+  return api.get<ConversationDetail>(`/agent/conversations/${id}`);
+}
+
+export async function deleteConversation(id: string): Promise<void> {
+  await api.delete(`/agent/conversations/${id}`);
+  revalidatePath("/chats");
 }

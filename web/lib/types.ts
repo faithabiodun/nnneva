@@ -94,6 +94,8 @@ export type SafetyBand = "none" | "routine" | "same_day" | "emergency";
 
 export type AgentRun = {
   id: string;
+  /** The thread this belongs to; null only for runs made before threading. */
+  conversation_id: string | null;
   prompt: string;
   reply: string;
   status: RunStatus;
@@ -105,6 +107,21 @@ export type AgentRun = {
   actions: AgentAction[];
   plan_steps: PlanStep[];
   approvals: Approval[];
+};
+
+export type ConversationSummary = {
+  id: string;
+  title: string;
+  last_message_at: string;
+  message_count: number;
+  preview: string;
+};
+
+export type ConversationDetail = {
+  id: string;
+  title: string;
+  last_message_at: string;
+  runs: AgentRun[];
 };
 
 export type ActivityDay = { label: string; runs: AgentRun[] };

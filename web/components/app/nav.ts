@@ -17,9 +17,9 @@ export const NAV = [
   { href: "/appointments", label: "Appointments", d: "M4 6h16v14H4zM4 10h16M8 3v4M16 3v4" },
   { href: "/activity", label: "Activity", d: "M3 12h4l3 7 4-14 3 7h4" },
   {
-    href: "/memory",
-    label: "Memory",
-    d: "M12 4a4 4 0 0 0-4 4v.6a3 3 0 0 0 0 5.8V16a4 4 0 0 0 8 0v-1.6a3 3 0 0 0 0-5.8V8a4 4 0 0 0-4-4z",
+    href: "/chats",
+    label: "Chat history",
+    d: "M20 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z",
   },
   {
     href: "/profile",

@@ -38,13 +38,46 @@ class Intent:
     share: bool = False
     complete_task: str | None = None
     target_day: date | None = None
+    # A question wants an answer, not a to-do list item. Creating work she did
+    # not ask for leaves her tidying up after the agent, which is worse than
+    # doing nothing.
+    is_question: bool = False
     # She is telling Nnneva an appointment exists, not asking about one it knows.
     states_appointment: bool = False
+
+
+# Openers that ask rather than instruct. "Can you remind me" is an instruction
+# wearing a question mark, so the imperative verbs below override this.
+_ASKING = re.compile(
+    r"^\s*(what|when|where|why|how|which|who|is|are|was|were|do|does|did|should|"
+    r"can i|could i|will i|am i|"
+    r"tell me about|explain)\b"
+)
+# An instruction, even when phrased politely or ending in a question mark.
+_INSTRUCTING = re.compile(
+    r"\b(remind|book|schedule|add|create|save|note down|put|set up|arrange|"
+    r"share|send|forward|mark|tick|cancel|move|reschedule|prepare|"
+    r"i have|i've got|my .{0,20}(is|are) on|don'?t forget)\b"
+)
+
+
+def looks_like_a_question(message: str) -> bool:
+    """Whether this asks for an answer rather than for work.
+
+    An explicit instruction wins over question shape: "Can you remind me to take
+    my iron?" is a request, not a query, and answering it with prose would be
+    the agent refusing to do its job.
+    """
+    text = (message or "").strip().lower()
+    if _INSTRUCTING.search(text):
+        return False
+    return bool(_ASKING.match(text)) or text.endswith("?")
 
 
 def read_intent(message: str) -> Intent:
     text = (message or "").lower()
     intent = Intent()
+    intent.is_question = looks_like_a_question(message)
 
     names_visit = bool(
         re.search(r"\b(appointment|antenatal|anc|visit|midwife|clinic|check-?up|scan)\b", text)
@@ -104,6 +137,13 @@ def run(box: T.Toolbox, message: str, screening: Screening) -> str:
         return _escalation_reply(screening, context)
 
     intent = read_intent(message)
+
+    # A question gets an answer and nothing else. This planner cannot reason
+    # about content, so it answers from what it actually knows — her own stored
+    # context — and offers to do the work rather than doing it uninvited.
+    if intent.is_question:
+        return _answer_reply(context, intent)
+
     did: list[str] = []
 
     if intent.complete_task:
@@ -232,6 +272,38 @@ def _summary_reply(did: list[str], box: T.Toolbox) -> str:
             f"One thing is waiting on you: {waiting[0].question} Nothing has been sent."
         )
     return "\n".join(lines)
+
+
+def _answer_reply(context: dict, intent: Intent) -> str:
+    """A plain answer, with an offer rather than an action.
+
+    Deliberately narrow: without a model this can only report what is stored,
+    so it says what it knows and then asks. Guessing at pregnancy questions it
+    cannot answer would be worse than admitting the limit.
+    """
+    week = context.get("gestational_week")
+    stage = context.get("trimester")
+    visits = context.get("next_appointments") or []
+
+    facts: list[str] = []
+    if week is not None:
+        facts.append(f"You are {week} weeks{f', {stage}' if stage else ''}.")
+    if visits:
+        first = visits[0]
+        when = first.get("when") or first.get("starts_at")
+        facts.append(f"Your next visit is {first.get('title', 'an appointment')}{f' on {when}' if when else ''}.")
+
+    offer = (
+        "I have not been given a model to reason with right now, so I would rather "
+        "not guess at that. I can save it as a question for your midwife, or set a "
+        "reminder — say the word and I will."
+    )
+    if intent.blood_test:
+        offer = (
+            "I would rather your midwife answered that one. Say “save that as a "
+            "question” and I will put it on your next visit."
+        )
+    return " ".join(facts + [offer])
 
 
 def _escalation_reply(screening: Screening, context: dict) -> str:

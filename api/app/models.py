@@ -165,6 +165,11 @@ class User(Base, TimestampMixin):
     runs: Mapped[list[AgentRun]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
+    conversations: Mapped[list[Conversation]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        order_by="Conversation.last_message_at.desc()",
+    )
     safety_events: Mapped[list[SafetyEvent]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
@@ -419,11 +424,45 @@ class Memory(Base, TimestampMixin):
 # ---------------------------------------------------------------------------
 
 
+class Conversation(Base, TimestampMixin):
+    """A thread of exchanges with the agent.
+
+    Runs were standalone: each message was answered and forgotten, so nothing
+    could be followed up and "as we discussed" meant nothing. A conversation
+    gives them an order and a shared history, which is what lets a later turn
+    refer to an earlier one.
+
+    The title is taken from the opening message rather than generated, so it is
+    recognisable in a list without costing a model call per thread.
+    """
+
+    __tablename__ = "conversations"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    title: Mapped[str] = mapped_column(String(120), default="New chat")
+    # Bumped on every run, so the list orders by real activity rather than by
+    # when the thread happened to be started.
+    last_message_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+    user: Mapped[User] = relationship(back_populates="conversations")
+    runs: Mapped[list[AgentRun]] = relationship(
+        back_populates="conversation",
+        cascade="all, delete-orphan",
+        order_by="AgentRun.created_at",
+    )
+
+
 class AgentRun(Base, TimestampMixin):
     __tablename__ = "agent_runs"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    conversation_id: Mapped[str | None] = mapped_column(
+        ForeignKey("conversations.id", ondelete="CASCADE"), default=None, index=True
+    )
     goal_id: Mapped[str | None] = mapped_column(
         ForeignKey("goals.id", ondelete="SET NULL"), default=None, index=True
     )
@@ -439,6 +478,7 @@ class AgentRun(Base, TimestampMixin):
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
 
     user: Mapped[User] = relationship(back_populates="runs")
+    conversation: Mapped[Conversation | None] = relationship(back_populates="runs")
     goal: Mapped[Goal | None] = relationship()
     actions: Mapped[list[ToolAction]] = relationship(
         back_populates="run", cascade="all, delete-orphan", order_by="ToolAction.position"
