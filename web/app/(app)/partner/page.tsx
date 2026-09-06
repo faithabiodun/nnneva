@@ -1,24 +1,44 @@
-import { listContactMessages, readContact } from "@/app/actions/app";
-import { api, ApiError } from "@/lib/api";
+import {
+  listContactMessages,
+  listContacts,
+  listRequests,
+} from "@/app/actions/app";
+import { api } from "@/lib/api";
 import type { Task } from "@/lib/types";
 import { PartnerView } from "@/components/app/views/PartnerView";
 
 export const metadata = { title: "Partner" };
 
-export default async function PartnerPage() {
-  // A missing contact is an ordinary state, not an error: plenty of people are
-  // doing this alone, and the screen should say so rather than break.
-  const contact = await readContact().catch((error) => {
-    if (error instanceof ApiError && error.status === 404) return null;
-    throw error;
-  });
+/**
+ * `?c=<id>` opens one conversation. With no `c`, the screen is about finding
+ * someone rather than talking to them — which is the right first thing for an
+ * account that has nobody yet, and a reasonable one for an account that does.
+ */
+export default async function PartnerPage({ searchParams }: PageProps<"/partner">) {
+  const { c } = await searchParams;
+  const wanted = typeof c === "string" ? c : null;
 
-  if (!contact) return <PartnerView contact={null} messages={[]} tasks={[]} />;
+  const [contacts, requests] = await Promise.all([listContacts(), listRequests()]);
+  const open = contacts.find((x) => x.id === wanted) ?? null;
+
+  if (!open) {
+    return (
+      <PartnerView contacts={contacts} open={null} messages={[]} tasks={[]} requests={requests} />
+    );
+  }
 
   const [messages, tasks] = await Promise.all([
-    listContactMessages(),
+    listContactMessages(open.id),
     api.get<Task[]>("/tasks"),
   ]);
 
-  return <PartnerView contact={contact} messages={messages} tasks={tasks} />;
+  return (
+    <PartnerView
+      contacts={contacts}
+      open={open}
+      messages={messages}
+      tasks={tasks}
+      requests={requests}
+    />
+  );
 }

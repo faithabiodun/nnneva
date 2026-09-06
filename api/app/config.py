@@ -12,17 +12,27 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://nnneva:nnneva@localhost:5432/nnneva"
 
     # Which planner runs:
-    #   auto     — use Bedrock when credentials are present, fall back on failure
-    #   bedrock  — require Bedrock; a failure is a 502, never a silent fallback
+    #   auto     — call a model when one is configured, fall back on failure
+    #   model    — require a model; a failure is a 502, never a silent fallback
+    #   bedrock  — the old name for "model", still accepted so a deployment
+    #              already carrying AGENT_ENGINE=bedrock keeps working
     #   scripted — never call a model
     # The fallback (app/agent/scripted.py) drives the same tools against the
-    # same database, so the product works end to end without AWS.
-    agent_engine: Literal["auto", "bedrock", "scripted"] = "auto"
+    # same database, so the product works end to end without any provider.
+    agent_engine: Literal["auto", "model", "bedrock", "scripted"] = "auto"
 
     aws_region: str = "us-east-1"
     aws_access_key_id: str = ""
     aws_secret_access_key: str = ""
-    bedrock_model_id: str = "anthropic.claude-opus-5"
+    # On-demand Anthropic models on Bedrock are reachable only through a
+    # regional inference profile, hence the "us." prefix. A bare
+    # "anthropic.claude-..." id is accepted here and rejected at invoke time.
+    bedrock_model_id: str = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+
+    # The second provider, tried when Bedrock fails. Empty disables it, which
+    # is the default: nothing here calls OpenAI unless a key is supplied.
+    openai_api_key: str = ""
+    openai_model: str = "gpt-5.3-mini"
 
     # Signs session tokens. Generate one with:
     #   python -c "import secrets; print(secrets.token_urlsafe(48))"
@@ -64,17 +74,38 @@ class Settings(BaseSettings):
         return bool(self.aws_access_key_id and self.aws_secret_access_key)
 
     @property
-    def use_bedrock(self) -> bool:
-        if self.agent_engine == "scripted":
-            return False
-        if self.agent_engine == "bedrock":
-            return True
-        return self.has_aws_credentials
+    def has_openai_key(self) -> bool:
+        return bool(self.openai_api_key)
 
     @property
-    def bedrock_required(self) -> bool:
-        """In `bedrock` mode a failure surfaces instead of falling back."""
-        return self.agent_engine == "bedrock"
+    def model_forced(self) -> bool:
+        """Configured to insist on a model rather than decide by what is present."""
+        return self.agent_engine in ("model", "bedrock")
+
+    @property
+    def use_bedrock_model(self) -> bool:
+        """Whether Bedrock is worth building as a candidate.
+
+        Forced mode counts as yes even with no keys, because that is how a task
+        running under an IAM role reaches Bedrock — the role is invisible here.
+        """
+        return self.agent_engine != "scripted" and (
+            self.has_aws_credentials or self.model_forced
+        )
+
+    @property
+    def use_openai_model(self) -> bool:
+        """OpenAI needs a key; there is no ambient-credential equivalent."""
+        return self.agent_engine != "scripted" and self.has_openai_key
+
+    @property
+    def use_model(self) -> bool:
+        return self.use_bedrock_model or self.use_openai_model
+
+    @property
+    def model_required(self) -> bool:
+        """In forced mode a failure surfaces instead of falling back."""
+        return self.model_forced
 
 
 MIN_SECRET_BYTES = 32  # HMAC-SHA256's block size; anything shorter weakens the signature

@@ -6,8 +6,9 @@ write the plan steps the UI reads back.
 
 Two engines sit behind one interface:
 
-  bedrock  — a real Strands Agent over a Bedrock model, with the tool set from
-             tools.py and hooks enforcing the safety spine at the tool boundary.
+  model    — a real Strands Agent over Bedrock, with OpenAI behind it as a
+             second provider, using the tool set from tools.py and hooks
+             enforcing the safety spine at the tool boundary.
   scripted — the deterministic planner in scripted.py.
 
 Which one ran is stored on the run and returned by the API, so a reader always
@@ -27,6 +28,7 @@ from app.agent import scripted
 from app.agent import tools as T
 from app.agent.prompt import SYSTEM_PROMPT
 from app.agent.safety import Screening, screen, scrub
+from app.agent.models import build_model, engine_label
 from app.agent.scripted import looks_like_a_question
 from app.config import get_settings
 from app.models import (
@@ -102,23 +104,26 @@ def run_agent(
 
     settings = get_settings()
     reply = ""
-    if settings.use_bedrock:
+    if settings.use_model:
         # The attempt runs inside a savepoint. A model that called three tools
         # and then died would otherwise leave that work committed and have the
         # fallback do it again, so the user would see everything twice.
+        #
+        # Provider-level failover happens inside this call: only when every
+        # configured provider has failed does control reach the except below.
         savepoint = db.begin_nested()
         try:
-            reply = _run_bedrock(box, message, settings, screening, history)
-            run.engine = "bedrock"
+            reply = _run_model(box, message, settings, screening, history)
+            run.engine = engine_label(settings)
             savepoint.commit()
-        except Exception as exc:  # noqa: BLE001 — every Bedrock failure lands here
+        except Exception as exc:  # noqa: BLE001 — every provider failure lands here
             savepoint.rollback()
-            if settings.bedrock_required:
-                # Explicitly configured for Bedrock: say so rather than quietly
-                # serving rules that look like a model.
-                log.exception("Bedrock run failed and AGENT_ENGINE=bedrock")
-                raise BedrockUnavailable(str(exc)) from exc
-            log.warning("Bedrock unavailable (%s); using the scripted planner", exc)
+            if settings.model_required:
+                # Explicitly configured to require a model: say so rather than
+                # quietly serving rules that look like one.
+                log.exception("Every model provider failed and AGENT_ENGINE requires one")
+                raise ModelUnavailable(str(exc)) from exc
+            log.warning("No model provider answered (%s); using the scripted planner", exc)
             _reset_after_failed_engine(box)
             reply = scripted.run(box, message, screening)
     else:
@@ -154,8 +159,9 @@ def run_agent(
     return RunOutcome(run=run, reply=run.reply, screening=screening)
 
 
-class BedrockUnavailable(RuntimeError):
-    """Raised when AGENT_ENGINE=bedrock and the model could not be reached."""
+class ModelUnavailable(RuntimeError):
+    """Raised when a model is required and no provider could be reached."""
+
 
 
 def _reset_after_failed_engine(box: T.Toolbox) -> None:
@@ -208,21 +214,20 @@ def _write_plan_steps(db: Session, run: AgentRun, box: T.Toolbox, goal: Goal | N
 # ---------------------------------------------------------------------------
 
 
-def _run_bedrock(
+def _run_model(
     box: T.Toolbox,
     message: str,
     settings,
     screening: Screening,
     history: list[dict] | None = None,
 ) -> str:
-    """Run a real Strands agent over Bedrock.
+    """Run a real Strands agent over whichever providers are configured.
 
     Imported lazily so the service starts, and the scripted path works, without
-    boto3 credentials or a network round trip at import time.
+    provider SDKs, credentials or a network round trip at import time.
     """
     from strands import Agent, ToolContext, tool
     from strands.hooks import BeforeToolCallEvent, HookRegistry
-    from strands.models import BedrockModel
 
     def bound(name: str):
         """Wrap a tool function so it receives the run's Toolbox."""
@@ -337,14 +342,8 @@ def _run_bedrock(
                     "to do and how soon, then stop."
                 )
 
-    model = BedrockModel(
-        model_id=settings.bedrock_model_id,
-        region_name=settings.aws_region,
-        max_tokens=2048,
-        temperature=0.2,
-    )
     agent = Agent(
-        model=model,
+        model=build_model(settings),
         system_prompt=SYSTEM_PROMPT,
         # The thread so far. Without it every message is the first one, and
         # "book it for then" has nothing to point at.

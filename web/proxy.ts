@@ -21,15 +21,18 @@ const SIGNED_IN_ONLY = [
   "/appointments",
   "/activity",
   "/partner",
+  "/helping",
   "/profile",
   "/onboarding",
 ];
 
-// The trusted contact's own pages live under /helping, deliberately outside
-// the list above. The prefix match would otherwise swallow them — they are
-// reached with a link rather than a session, and the token is the whole
-// authorisation. Keeping them on a separate path means the two can never be
-// confused for one another.
+// The invite-link pages live under /invite, deliberately outside the list
+// above. The prefix match would otherwise swallow them — they are reached with
+// a link rather than a session, and the token is the whole authorisation.
+//
+// /helping is the opposite: the signed-in helper's own view of the people they
+// are helping. Two different paths for two different ways in, so a prefix
+// match can never confuse them.
 
 const SIGNED_OUT_ONLY = ["/login", "/signup"];
 

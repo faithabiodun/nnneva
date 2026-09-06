@@ -6,11 +6,14 @@ import { redirect } from "next/navigation";
 import { api } from "@/lib/api";
 import type {
   AgentRun,
-  ContactMessage,
   Appointment,
+  ContactMessage,
+  ContactRequests,
   ConversationDetail,
   ConversationSummary,
+  Helping,
   MemoryItem,
+  Person,
   Profile,
   Question,
   Task,
@@ -103,8 +106,8 @@ export async function forgetMemory(memoryId: string): Promise<void> {
 
 export type ProfilePatch = {
   full_name?: string;
+  username?: string;
   phone?: string;
-  avatar?: string | null;
   /** Creates the pregnancy profile when there is none yet. */
   due_date?: string;
   care_location?: string;
@@ -113,7 +116,6 @@ export type ProfilePatch = {
   contact_window?: string;
   retention?: string;
   notifications?: Record<string, boolean>;
-  trusted_contact_permissions?: Record<string, boolean>;
 };
 
 export async function updateProfile(patch: ProfilePatch): Promise<Profile> {
@@ -147,35 +149,69 @@ export async function deleteConversation(id: string): Promise<void> {
   revalidatePath("/chats");
 }
 
-/* ---- The trusted contact -------------------------------------------------- */
+/* ---- Trusted contacts ----------------------------------------------------- */
 
-export async function readContact(): Promise<TrustedContactDetail> {
-  return api.get<TrustedContactDetail>("/contact");
+export async function listContacts(): Promise<TrustedContactDetail[]> {
+  return api.get<TrustedContactDetail[]>("/contacts");
 }
 
-export async function inviteContact(): Promise<TrustedContactDetail> {
-  const contact = await api.post<TrustedContactDetail>("/contact/invite");
+export async function addContact(input: {
+  name: string;
+  relationship: string;
+  phone?: string | null;
+  email?: string | null;
+}): Promise<TrustedContactDetail> {
+  const contact = await api.post<TrustedContactDetail>("/contacts", input);
+  revalidatePath("/partner");
+  revalidatePath("/profile");
+  return contact;
+}
+
+export async function updateContact(
+  id: string,
+  patch: {
+    name?: string;
+    relationship?: string;
+    phone?: string | null;
+    email?: string | null;
+    permissions?: Record<string, boolean>;
+  },
+): Promise<TrustedContactDetail> {
+  const contact = await api.patch<TrustedContactDetail>(`/contacts/${id}`, patch);
+  revalidatePath("/partner");
+  revalidatePath("/profile");
+  return contact;
+}
+
+export async function removeContact(id: string): Promise<void> {
+  await api.delete(`/contacts/${id}`);
+  revalidatePath("/partner");
+  revalidatePath("/profile");
+}
+
+export async function inviteContact(id: string): Promise<TrustedContactDetail> {
+  const contact = await api.post<TrustedContactDetail>(`/contacts/${id}/invite`);
   revalidatePath("/partner");
   return contact;
 }
 
-export async function revokeInvite(): Promise<void> {
-  await api.delete("/contact/invite");
+export async function revokeInvite(id: string): Promise<void> {
+  await api.delete(`/contacts/${id}/invite`);
   revalidatePath("/partner");
 }
 
-export async function listContactMessages(): Promise<ContactMessage[]> {
-  return api.get<ContactMessage[]>("/contact/messages");
+export async function listContactMessages(id: string): Promise<ContactMessage[]> {
+  return api.get<ContactMessage[]>(`/contacts/${id}/messages`);
 }
 
-export async function messageContact(body: string): Promise<ContactMessage> {
-  const message = await api.post<ContactMessage>("/contact/messages", { body });
+export async function messageContact(id: string, body: string): Promise<ContactMessage> {
+  const message = await api.post<ContactMessage>(`/contacts/${id}/messages`, { body });
   revalidatePath("/partner");
   return message;
 }
 
-export async function assignTask(taskId: string): Promise<void> {
-  await api.post(`/tasks/${taskId}/assign`);
+export async function assignTask(contactId: string, taskId: string): Promise<void> {
+  await api.post(`/contacts/${contactId}/tasks/${taskId}`);
   revalidatePath("/partner");
   revalidatePath("/tasks");
 }
@@ -184,4 +220,55 @@ export async function unassignTask(taskId: string): Promise<void> {
   await api.delete(`/tasks/${taskId}/assign`);
   revalidatePath("/partner");
   revalidatePath("/tasks");
+}
+
+/* ---- Finding people, and asking them -------------------------------------- */
+
+export async function searchPeople(q: string): Promise<Person[]> {
+  if (q.trim().length < 2) return [];
+  return api.get<Person[]>(`/people/search?q=${encodeURIComponent(q.trim())}`);
+}
+
+export async function listRequests(): Promise<ContactRequests> {
+  return api.get<ContactRequests>("/people/requests");
+}
+
+export async function sendRequest(username: string, relationship: string): Promise<void> {
+  await api.post("/people/requests", { username, relationship });
+  revalidatePath("/partner");
+}
+
+export async function answerRequest(id: string, accept: boolean): Promise<void> {
+  await api.post(`/people/requests/${id}/${accept ? "accept" : "decline"}`);
+  revalidatePath("/partner");
+  revalidatePath("/helping");
+}
+
+export async function withdrawRequest(id: string): Promise<void> {
+  await api.delete(`/people/requests/${id}`);
+  revalidatePath("/partner");
+}
+
+/* ---- The other side: people this account is helping ----------------------- */
+
+export async function listHelping(): Promise<Helping[]> {
+  return api.get<Helping[]>("/people/helping");
+}
+
+export async function readHelpingThread(contactId: string): Promise<ContactMessage[]> {
+  return api.get<ContactMessage[]>(`/people/helping/${contactId}/messages`);
+}
+
+export async function replyToMother(contactId: string, body: string): Promise<ContactMessage> {
+  const message = await api.post<ContactMessage>(
+    `/people/helping/${contactId}/messages`,
+    { body },
+  );
+  revalidatePath("/helping");
+  return message;
+}
+
+export async function completeForMother(contactId: string, taskId: string): Promise<void> {
+  await api.post(`/people/helping/${contactId}/tasks/${taskId}/done`);
+  revalidatePath("/helping");
 }

@@ -24,6 +24,7 @@ from app.routers import (
     memory,
     onboarding,
     partner,
+    people,
     profile,
     tasks,
 )
@@ -50,7 +51,7 @@ app.add_middleware(
 
 for module in (
     auth, onboarding, home, agent, tasks, appointments, activity, memory, profile, approvals,
-    partner,
+    partner, people,
 ):
     app.include_router(module.router)
 
@@ -69,7 +70,9 @@ def health() -> dict[str, object]:
     return {
         "status": "ok",
         "mode": current.agent_engine,
-        "will_try_bedrock": current.use_bedrock,
-        "falls_back_to_scripted": not current.bedrock_required,
-        "model": current.bedrock_model_id if current.use_bedrock else None,
+        "will_try_bedrock": current.use_bedrock_model,
+        "will_try_openai": current.use_openai_model,
+        "falls_back_to_scripted": not current.model_required,
+        "bedrock_model": current.bedrock_model_id if current.use_bedrock_model else None,
+        "openai_model": current.openai_model if current.use_openai_model else None,
     }

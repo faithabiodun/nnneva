@@ -21,14 +21,27 @@ from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 
 from app.deps import CurrentUser, DbSession
+from sqlalchemy import func
+
 from app.models import ContactMessage, Task, TaskStatus, TrustedContact
 from app.schemas import (
     ContactMessageIn,
     ContactMessageOut,
     PartnerTaskOut,
     PartnerViewOut,
+    TrustedContactIn,
     TrustedContactOut,
+    TrustedContactPatch,
 )
+
+# The permission columns, keyed by the name the API uses. Kept here rather than
+# imported from profile.py so the two screens cannot drift apart silently.
+PERMISSIONS = {
+    "shared_tasks": "can_see_shared_tasks",
+    "appointments": "can_see_appointments",
+    "forwarded_reminders": "can_get_forwarded_reminders",
+    "test_results": "can_see_test_results",
+}
 
 router = APIRouter(tags=["partner"])
 
@@ -36,15 +49,16 @@ router = APIRouter(tags=["partner"])
 # ---- Her side --------------------------------------------------------------
 
 
-def _her_contact(db: DbSession, user) -> TrustedContact:
-    contact = db.scalars(
-        select(TrustedContact).where(TrustedContact.user_id == user.id)
-    ).first()
-    if contact is None:
-        raise HTTPException(
-            status.HTTP_404_NOT_FOUND,
-            "No trusted contact yet. Add one in your profile first.",
-        )
+def _hers(db: DbSession, user, contact_id: str) -> TrustedContact:
+    """One of her contacts, by id.
+
+    404 rather than 403 for someone else's contact: a helper id is a random
+    uuid, and telling the difference between "not yours" and "not real" would
+    make this a way to confirm one exists.
+    """
+    contact = db.get(TrustedContact, contact_id)
+    if contact is None or contact.user_id != user.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "No such contact")
     return contact
 
 
@@ -54,9 +68,19 @@ def _message_out(m: ContactMessage) -> ContactMessageOut:
     )
 
 
-@router.get("/contact", response_model=TrustedContactOut)
-def read_contact(user: CurrentUser, db: DbSession) -> TrustedContactOut:
-    contact = _her_contact(db, user)
+def _unread(db: DbSession, contact: TrustedContact, from_sender: str) -> int:
+    return db.scalar(
+        select(func.count())
+        .select_from(ContactMessage)
+        .where(
+            ContactMessage.contact_id == contact.id,
+            ContactMessage.sender == from_sender,
+            ContactMessage.read_at.is_(None),
+        )
+    ) or 0
+
+
+def _contact_out(db: DbSession, contact: TrustedContact) -> TrustedContactOut:
     return TrustedContactOut(
         id=contact.id,
         name=contact.name,
@@ -66,36 +90,115 @@ def read_contact(user: CurrentUser, db: DbSession) -> TrustedContactOut:
         invited=contact.access_token is not None,
         accepted=contact.accepted_at is not None,
         access_token=contact.access_token,
+        username=contact.linked_user.username if contact.linked_user else None,
+        unread=_unread(db, contact, "contact"),
+        permissions={key: getattr(contact, field) for key, field in PERMISSIONS.items()},
     )
 
 
-@router.post("/contact/invite", response_model=TrustedContactOut)
-def invite_contact(user: CurrentUser, db: DbSession) -> TrustedContactOut:
-    """Mint (or replace) the link her contact uses.
+@router.get("/contacts", response_model=list[TrustedContactOut])
+def list_contacts(user: CurrentUser, db: DbSession) -> list[TrustedContactOut]:
+    """Everyone helping her. A pregnancy is rarely one person's job."""
+    return [_contact_out(db, c) for c in user.contacts]
+
+
+@router.post("/contacts", response_model=TrustedContactOut, status_code=status.HTTP_201_CREATED)
+def add_contact(payload: TrustedContactIn, user: CurrentUser, db: DbSession) -> TrustedContactOut:
+    """Add someone by hand — a person with no Nnneva account.
+
+    Every permission starts off, as it does for a contact who arrives by
+    accepting a request. Adding someone is not sharing with them.
+    """
+    contact = TrustedContact(
+        user_id=user.id,
+        name=payload.name.strip(),
+        relationship_label=payload.relationship.strip() or "Partner",
+        phone=payload.phone,
+        email=payload.email,
+    )
+    db.add(contact)
+    db.commit()
+    db.refresh(contact)
+    return _contact_out(db, contact)
+
+
+@router.get("/contacts/{contact_id}", response_model=TrustedContactOut)
+def read_contact(contact_id: str, user: CurrentUser, db: DbSession) -> TrustedContactOut:
+    return _contact_out(db, _hers(db, user, contact_id))
+
+
+@router.patch("/contacts/{contact_id}", response_model=TrustedContactOut)
+def update_contact(
+    contact_id: str, payload: TrustedContactPatch, user: CurrentUser, db: DbSession
+) -> TrustedContactOut:
+    contact = _hers(db, user, contact_id)
+
+    if payload.name is not None:
+        contact.name = payload.name.strip()
+    if payload.relationship is not None:
+        contact.relationship_label = payload.relationship.strip() or "Partner"
+    if payload.phone is not None:
+        contact.phone = payload.phone
+    if payload.email is not None:
+        contact.email = payload.email
+    for key, value in (payload.permissions or {}).items():
+        if key in PERMISSIONS:
+            setattr(contact, PERMISSIONS[key], bool(value))
+
+    db.commit()
+    db.refresh(contact)
+    return _contact_out(db, contact)
+
+
+@router.delete("/contacts/{contact_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remove_contact(contact_id: str, user: CurrentUser, db: DbSession) -> None:
+    """Remove a contact, and with them the thread and the link.
+
+    Tasks assigned to them survive — they are her tasks, and losing one because
+    a helper left would be the wrong kind of tidy.
+    """
+    contact = _hers(db, user, contact_id)
+    for task in db.scalars(select(Task).where(Task.assigned_contact_id == contact.id)).all():
+        task.assigned_contact_id = None
+    db.delete(contact)
+    db.commit()
+
+
+@router.post("/contacts/{contact_id}/invite", response_model=TrustedContactOut)
+def invite_contact(contact_id: str, user: CurrentUser, db: DbSession) -> TrustedContactOut:
+    """Mint (or replace) the link this contact uses.
 
     Calling this again rotates the token, which is also how she revokes access:
     the old link stops working the moment a new one exists.
+
+    A contact who arrived by accepting a request does not need one — they sign
+    in as themselves — so this refuses rather than creating a second way in.
     """
-    contact = _her_contact(db, user)
+    contact = _hers(db, user, contact_id)
+    if contact.linked_user_id is not None:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            f"{contact.name} has a Nnneva account and signs in to help; no link is needed.",
+        )
     contact.access_token = secrets.token_urlsafe(32)
     contact.invited_at = datetime.now(timezone.utc)
     contact.accepted_at = None
     db.commit()
     db.refresh(contact)
-    return read_contact(user, db)
+    return _contact_out(db, contact)
 
 
-@router.delete("/contact/invite", status_code=status.HTTP_204_NO_CONTENT)
-def revoke_invite(user: CurrentUser, db: DbSession) -> None:
-    contact = _her_contact(db, user)
+@router.delete("/contacts/{contact_id}/invite", status_code=status.HTTP_204_NO_CONTENT)
+def revoke_invite(contact_id: str, user: CurrentUser, db: DbSession) -> None:
+    contact = _hers(db, user, contact_id)
     contact.access_token = None
     contact.accepted_at = None
     db.commit()
 
 
-@router.get("/contact/messages", response_model=list[ContactMessageOut])
-def list_messages(user: CurrentUser, db: DbSession) -> list[ContactMessageOut]:
-    contact = _her_contact(db, user)
+@router.get("/contacts/{contact_id}/messages", response_model=list[ContactMessageOut])
+def list_messages(contact_id: str, user: CurrentUser, db: DbSession) -> list[ContactMessageOut]:
+    contact = _hers(db, user, contact_id)
     # Anything they sent is now seen.
     for m in contact.messages:
         if m.sender == "contact" and m.read_at is None:
@@ -105,12 +208,14 @@ def list_messages(user: CurrentUser, db: DbSession) -> list[ContactMessageOut]:
 
 
 @router.post(
-    "/contact/messages", response_model=ContactMessageOut, status_code=status.HTTP_201_CREATED
+    "/contacts/{contact_id}/messages",
+    response_model=ContactMessageOut,
+    status_code=status.HTTP_201_CREATED,
 )
 def send_message(
-    payload: ContactMessageIn, user: CurrentUser, db: DbSession
+    contact_id: str, payload: ContactMessageIn, user: CurrentUser, db: DbSession
 ) -> ContactMessageOut:
-    contact = _her_contact(db, user)
+    contact = _hers(db, user, contact_id)
     message = ContactMessage(
         contact_id=contact.id, user_id=user.id, body=payload.body.strip(), sender="user"
     )
@@ -120,24 +225,23 @@ def send_message(
     return _message_out(message)
 
 
-@router.post("/tasks/{task_id}/assign", response_model=PartnerTaskOut)
-def assign_task(task_id: str, user: CurrentUser, db: DbSession) -> PartnerTaskOut:
-    """Ask her contact to take a task on.
+@router.post("/contacts/{contact_id}/tasks/{task_id}", response_model=PartnerTaskOut)
+def assign_task(
+    contact_id: str, task_id: str, user: CurrentUser, db: DbSession
+) -> PartnerTaskOut:
+    """Ask a contact to take a task on.
 
     The task stays hers. Assigning is a request, not a transfer: it remains on
     her list, and she can take it back by unassigning.
     """
-    contact = _her_contact(db, user)
+    contact = _hers(db, user, contact_id)
     task = db.get(Task, task_id)
     if task is None or task.user_id != user.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No such task")
     task.assigned_contact_id = contact.id
     db.commit()
     db.refresh(task)
-    return PartnerTaskOut(
-        id=task.id, title=task.title, detail=task.detail,
-        due_date=task.due_date, done=task.status == TaskStatus.complete,
-    )
+    return _task_out(task)
 
 
 @router.delete("/tasks/{task_id}/assign", status_code=status.HTTP_204_NO_CONTENT)
@@ -147,6 +251,16 @@ def unassign_task(task_id: str, user: CurrentUser, db: DbSession) -> None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No such task")
     task.assigned_contact_id = None
     db.commit()
+
+
+def _task_out(task: Task) -> PartnerTaskOut:
+    return PartnerTaskOut(
+        id=task.id,
+        title=task.title,
+        detail=task.detail or "",
+        due_date=task.due_date,
+        done=task.status == TaskStatus.complete,
+    )
 
 
 # ---- Their side ------------------------------------------------------------

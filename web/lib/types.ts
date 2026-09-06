@@ -132,8 +132,6 @@ export type Profile = {
   full_name: string;
   email: string;
   phone: string | null;
-  /** One of the drawn avatar keys, or null for the initial. */
-  avatar: string | null;
   due_date: string | null;
   gestational_week: number | null;
   trimester: string | null;
@@ -145,11 +143,19 @@ export type Profile = {
   contact_window: string;
   retention: string;
   notifications: Record<string, boolean>;
-  trusted_contact: {
+  /** The handle other people search for. Allocated at sign-up, editable here. */
+  username: string;
+  /** Everyone helping her. Permissions live on each one, not on the account. */
+  trusted_contacts: {
+    id: string;
     name: string;
     relationship: string;
+    phone: string | null;
+    email: string | null;
+    /** Set when this contact is a Nnneva user who accepted a request. */
+    username: string | null;
     permissions: Record<string, boolean>;
-  } | null;
+  }[];
 };
 
 export type Home = {
@@ -183,6 +189,42 @@ export type TrustedContactDetail = {
   accepted: boolean;
   /** Only ever sent to her; the partner's own view never echoes it. */
   access_token: string | null;
+  /** Their handle, when they have an account. Null for an invite-link contact. */
+  username: string | null;
+  unread: number;
+  permissions: Record<string, boolean>;
+};
+
+/** A search result. Handle and display name only, by design. */
+export type Person = {
+  username: string;
+  full_name: string;
+  state: "none" | "pending_outgoing" | "pending_incoming" | "connected";
+};
+
+export type ContactRequest = {
+  id: string;
+  username: string;
+  full_name: string;
+  relationship: string;
+  status: string;
+  created_at: string;
+};
+
+export type ContactRequests = {
+  incoming: ContactRequest[];
+  outgoing: ContactRequest[];
+};
+
+/** The other side: someone this account is a trusted contact for. */
+export type Helping = {
+  contact_id: string;
+  mother_name: string;
+  mother_username: string;
+  relationship: string;
+  can_see_tasks: boolean;
+  tasks: PartnerTask[];
+  unread: number;
 };
 
 export type PartnerTask = {

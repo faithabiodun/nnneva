@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from app.agent.runner import BedrockUnavailable, run_agent
+from app.agent.runner import ModelUnavailable, run_agent
 from app.deps import CurrentUser, DbSession
 from app.models import AgentRun, Conversation
 from app.schemas import (
@@ -32,7 +32,7 @@ def start_run(payload: AgentMessageIn, user: CurrentUser, db: DbSession) -> Agen
 
     try:
         outcome = run_agent(db, user, message, conversation=conversation)
-    except BedrockUnavailable as exc:
+    except ModelUnavailable as exc:
         raise HTTPException(
             status.HTTP_502_BAD_GATEWAY,
             f"The model is configured as required but could not be reached: {exc}",

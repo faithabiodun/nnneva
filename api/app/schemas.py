@@ -194,9 +194,9 @@ class SafetyEventOut(BaseModel):
 
 class ProfileOut(BaseModel):
     full_name: str
+    username: str
     email: str
     phone: str | None
-    avatar: str | None
     due_date: date | None
     gestational_week: int | None
     trimester: str | None
@@ -206,7 +206,7 @@ class ProfileOut(BaseModel):
     contact_window: str
     retention: str
     notifications: dict[str, bool]
-    trusted_contact: dict | None
+    trusted_contacts: list[dict]
     # Whether the pregnancy context exists. Google sign-in creates an account
     # without it, so the app has to be able to ask for it later rather than
     # assuming everyone came through onboarding.
@@ -274,7 +274,6 @@ class ApprovalDecision(BaseModel):
 class ProfilePatch(BaseModel):
     full_name: str | None = None
     phone: str | None = None
-    avatar: str | None = None
     # The pregnancy context, editable after the fact. due_date creates the
     # profile row when there is none, so someone who skipped onboarding can
     # fill it in from their profile instead of being sent back through a wizard.
@@ -313,6 +312,64 @@ class TrustedContactOut(BaseModel):
     accepted: bool
     # Only ever returned to her. The partner's own view never echoes it back.
     access_token: str | None
+    # Set when this contact is a Nnneva user who accepted a request. Their
+    # handle, so she can tell two people with the same first name apart.
+    username: str | None = None
+    unread: int = 0
+    permissions: dict[str, bool] = Field(default_factory=dict)
+
+
+class TrustedContactIn(BaseModel):
+    """Adding a contact by hand — someone with no Nnneva account."""
+
+    name: str = Field(min_length=1, max_length=120)
+    relationship: str = Field(default="Partner", max_length=60)
+    phone: str | None = Field(default=None, max_length=40)
+    email: EmailStr | None = None
+
+
+class TrustedContactPatch(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    relationship: str | None = Field(default=None, max_length=60)
+    phone: str | None = Field(default=None, max_length=40)
+    email: EmailStr | None = None
+    permissions: dict[str, bool] | None = None
+
+
+# ---- Finding people, and asking them ---------------------------------------
+
+
+class PersonOut(BaseModel):
+    """A search result. Everything here is a handle or a display name.
+
+    No email, no due date, nothing about a pregnancy: a search box that
+    confirmed someone uses a maternity app would be the leak, not the feature.
+    """
+
+    username: str
+    full_name: str
+    # "none", "pending_outgoing", "pending_incoming", "connected" — so the
+    # button can say what it will do instead of failing on the second press.
+    state: str
+
+
+class ContactRequestIn(BaseModel):
+    username: str = Field(min_length=1, max_length=30)
+    relationship: str = Field(default="Partner", max_length=60)
+
+
+class ContactRequestOut(BaseModel):
+    id: str
+    username: str
+    full_name: str
+    relationship: str
+    status: str
+    created_at: datetime
+
+
+class ContactRequestsOut(BaseModel):
+    incoming: list[ContactRequestOut]
+    outgoing: list[ContactRequestOut]
 
 
 class PartnerTaskOut(BaseModel):
@@ -332,3 +389,15 @@ class PartnerViewOut(BaseModel):
     can_see_tasks: bool
     tasks: list[PartnerTaskOut]
     messages: list[ContactMessageOut]
+
+
+class HelpingOut(BaseModel):
+    """One person this signed-in user is helping — the other side of a link."""
+
+    contact_id: str
+    mother_name: str
+    mother_username: str
+    relationship: str
+    can_see_tasks: bool
+    tasks: list[PartnerTaskOut]
+    unread: int

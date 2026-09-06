@@ -17,8 +17,8 @@ GOAL = "Prepare questions for my appointment and get my blood test booked"
 
 
 @pytest.fixture
-def bedrock_mode(monkeypatch):
-    """Point the settings at Bedrock without touching the real AWS SDK."""
+def model_mode(monkeypatch):
+    """Point the settings at a model without touching either provider SDK."""
 
     def apply(mode: str):
         monkeypatch.setenv("AGENT_ENGINE", mode)
@@ -32,11 +32,11 @@ def bedrock_mode(monkeypatch):
 
 
 def test_auto_falls_back_when_the_model_cannot_be_reached(
-    client, signed_up, bedrock_mode, monkeypatch
+    client, signed_up, model_mode, monkeypatch
 ):
-    bedrock_mode("auto")
+    model_mode("auto")
     monkeypatch.setattr(
-        runner, "_run_bedrock",
+        runner, "_run_model",
         lambda *a, **k: (_ for _ in ()).throw(RuntimeError("no credentials")),
     )
 
@@ -46,12 +46,12 @@ def test_auto_falls_back_when_the_model_cannot_be_reached(
     assert any(a["tool"] == "create_task" for a in run["actions"])
 
 
-def test_bedrock_mode_reports_the_failure_instead_of_hiding_it(
-    client, signed_up, bedrock_mode, monkeypatch
+def test_model_mode_reports_the_failure_instead_of_hiding_it(
+    client, signed_up, model_mode, monkeypatch
 ):
-    bedrock_mode("bedrock")
+    model_mode("model")
     monkeypatch.setattr(
-        runner, "_run_bedrock",
+        runner, "_run_model",
         lambda *a, **k: (_ for _ in ()).throw(RuntimeError("token invalid")),
     )
 
@@ -60,10 +60,10 @@ def test_bedrock_mode_reports_the_failure_instead_of_hiding_it(
     assert "could not be reached" in r.json()["detail"]
 
 
-def test_scripted_mode_never_calls_the_model(client, signed_up, bedrock_mode, monkeypatch):
-    bedrock_mode("scripted")
+def test_scripted_mode_never_calls_the_model(client, signed_up, model_mode, monkeypatch):
+    model_mode("scripted")
     called = []
-    monkeypatch.setattr(runner, "_run_bedrock", lambda *a, **k: called.append(1) or "hi")
+    monkeypatch.setattr(runner, "_run_model", lambda *a, **k: called.append(1) or "hi")
 
     run = client.post("/agent/runs", headers=signed_up, json={"message": GOAL}).json()
     assert called == []
@@ -71,14 +71,14 @@ def test_scripted_mode_never_calls_the_model(client, signed_up, bedrock_mode, mo
 
 
 def test_a_half_finished_model_run_is_rolled_back_before_the_fallback(
-    client, signed_up, db, bedrock_mode, monkeypatch
+    client, signed_up, db, model_mode, monkeypatch
 ):
     """A model that does work and then dies must not leave that work behind.
 
     Without the savepoint the user would see every task twice: once from the
     abandoned attempt and once from the fallback.
     """
-    bedrock_mode("auto")
+    model_mode("auto")
 
     def half_a_run(box, message, settings, screening):
         from app.agent import tools as T
@@ -87,7 +87,7 @@ def test_a_half_finished_model_run_is_rolled_back_before_the_fallback(
         T.create_task(box, "Ghost task from the abandoned attempt")
         raise RuntimeError("model died mid-run")
 
-    monkeypatch.setattr(runner, "_run_bedrock", half_a_run)
+    monkeypatch.setattr(runner, "_run_model", half_a_run)
 
     run = client.post("/agent/runs", headers=signed_up, json={"message": GOAL}).json()
 
@@ -103,25 +103,25 @@ def test_a_half_finished_model_run_is_rolled_back_before_the_fallback(
     assert len(run["actions"]) == len(positions)
 
 
-def test_health_distinguishes_configuration_from_reachability(client, bedrock_mode):
-    bedrock_mode("auto")
+def test_health_distinguishes_configuration_from_reachability(client, model_mode):
+    model_mode("auto")
     body = client.get("/health").json()
     assert body["mode"] == "auto"
     assert body["will_try_bedrock"] is True
     assert body["falls_back_to_scripted"] is True
 
-    bedrock_mode("bedrock")
+    model_mode("model")
     body = client.get("/health").json()
     assert body["falls_back_to_scripted"] is False
 
 
-def test_no_duplicate_work_across_two_engines(client, signed_up, db, bedrock_mode, monkeypatch):
-    bedrock_mode("auto")
+def test_no_duplicate_work_across_two_engines(client, signed_up, db, model_mode, monkeypatch):
+    model_mode("auto")
 
     def dies_immediately(box, message, settings, screening):
         raise RuntimeError("nope")
 
-    monkeypatch.setattr(runner, "_run_bedrock", dies_immediately)
+    monkeypatch.setattr(runner, "_run_model", dies_immediately)
     client.post("/agent/runs", headers=signed_up, json={"message": GOAL})
 
     titles = db.scalars(select(Task.title)).all()

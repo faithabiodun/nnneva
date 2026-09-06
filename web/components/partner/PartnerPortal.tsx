@@ -27,7 +27,7 @@ export function PartnerPortal({ token, view }: { token: string; view: PartnerVie
   const first = view.mother_name;
 
   const post = async (path: string, payload?: unknown) => {
-    const r = await fetch(`/helping/${token}/api${path}`, {
+    const r = await fetch(`/invite/${token}/api${path}`, {
       method: "POST",
       headers: payload ? { "Content-Type": "application/json" } : {},
       body: payload ? JSON.stringify(payload) : undefined,

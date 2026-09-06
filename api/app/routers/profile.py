@@ -27,12 +27,11 @@ CONTACT_PERMISSIONS = {
 
 def profile_payload(user: User) -> ProfileOut:
     profile = user.profile
-    contact = user.contacts[0] if user.contacts else None
     return ProfileOut(
         full_name=user.full_name,
+        username=user.username,
         email=user.email,
         phone=user.phone,
-        avatar=user.avatar,
         due_date=profile.due_date if profile else None,
         gestational_week=profile.gestational_week if profile else None,
         trimester=profile.trimester if profile else None,
@@ -42,19 +41,22 @@ def profile_payload(user: User) -> ProfileOut:
         contact_window=user.contact_window,
         retention=user.retention,
         notifications={key: getattr(user, field) for key, field in NOTIFICATION_FIELDS.items()},
-        trusted_contact=(
+        # Everyone helping her, not just the first. The permissions live on
+        # each contact, so two people can be trusted with different things.
+        trusted_contacts=[
             {
-                "name": contact.name,
-                "relationship": contact.relationship_label,
-                "phone": contact.phone,
-                "email": contact.email,
+                "id": c.id,
+                "name": c.name,
+                "relationship": c.relationship_label,
+                "phone": c.phone,
+                "email": c.email,
+                "username": c.linked_user.username if c.linked_user else None,
                 "permissions": {
-                    key: getattr(contact, field) for key, field in CONTACT_PERMISSIONS.items()
+                    key: getattr(c, field) for key, field in CONTACT_PERMISSIONS.items()
                 },
             }
-            if contact
-            else None
-        ),
+            for c in user.contacts
+        ],
         onboarded=profile is not None,
     )
 
@@ -66,7 +68,7 @@ def read_profile(user: CurrentUser) -> ProfileOut:
 
 @router.patch("", response_model=ProfileOut)
 def update_profile(payload: ProfilePatch, user: CurrentUser, db: DbSession) -> ProfileOut:
-    for field in ("full_name", "phone", "avatar", "contact_window", "retention"):
+    for field in ("full_name", "phone", "contact_window", "retention"):
         value = getattr(payload, field)
         if value is not None:
             setattr(user, field, value)
@@ -101,6 +103,8 @@ def update_profile(payload: ProfilePatch, user: CurrentUser, db: DbSession) -> P
         if key in NOTIFICATION_FIELDS:
             setattr(user, NOTIFICATION_FIELDS[key], bool(value))
 
+    # Per-contact permissions now live on /contacts/{id}; this stays for the
+    # first contact only, which is the one onboarding creates.
     if payload.trusted_contact_permissions and user.contacts:
         contact = user.contacts[0]
         for key, value in payload.trusted_contact_permissions.items():

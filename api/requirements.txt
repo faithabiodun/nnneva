@@ -4,6 +4,9 @@
 # strands-agents-tools is deliberately absent: nothing imports it, and it pulls
 # sympy, Pillow, aiohttp, watchdog and slack-bolt into a maternal-health API.
 strands-agents==1.54.0
+# The second model provider. strands.models.openai imports this directly;
+# without it that module raises ImportError and only Bedrock is reachable.
+openai==3.8.0
 
 # API
 fastapi==0.141.1

@@ -13,7 +13,7 @@ export const metadata = {
  * The partner's own page. No account, no session — the token in the URL is the
  * whole authorisation, so this is deliberately a thin, read-mostly view.
  */
-export default async function PartnerTokenPage({ params }: PageProps<"/helping/[token]">) {
+export default async function PartnerTokenPage({ params }: PageProps<"/invite/[token]">) {
   const { token } = await params;
 
   const base = process.env.API_BASE_URL ?? "http://localhost:8000";

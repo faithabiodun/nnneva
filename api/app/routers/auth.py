@@ -11,6 +11,7 @@ from app.models import User
 from app.schemas import LoginIn, SignUpIn, SupabaseAuthIn, TokenOut
 from app.security import hash_password, issue_token, verify_password
 from app.supabase_auth import SupabaseAuthError, verify_access_token
+from app.usernames import allocate_username
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -24,6 +25,7 @@ def sign_up(payload: SignUpIn, db: DbSession) -> TokenOut:
     user = User(
         email=email,
         full_name=payload.full_name.strip(),
+        username=allocate_username(db, payload.full_name, email),
         password_hash=hash_password(payload.password),
     )
     db.add(user)
@@ -65,7 +67,12 @@ def supabase_sign_in(payload: SupabaseAuthIn, db: DbSession) -> TokenOut:
     if user is None:
         # No password hash: this account is reachable through the provider
         # only, unless its owner later sets a password.
-        user = User(email=identity.email, full_name=identity.full_name, password_hash=None)
+        user = User(
+            email=identity.email,
+            full_name=identity.full_name,
+            username=allocate_username(db, identity.full_name, identity.email),
+            password_hash=None,
+        )
         db.add(user)
         db.commit()
 

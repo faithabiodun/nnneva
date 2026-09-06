@@ -1,11 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 
 import { logOut } from "@/app/actions/auth";
-import { updateProfile } from "@/app/actions/app";
+import { updateContact, updateProfile } from "@/app/actions/app";
 import { AppShell } from "@/components/app/AppShell";
-import { AVATARS, Avatar } from "@/components/app/Avatar";
 import { EditField, ReadField, ToggleRow } from "@/components/app/Bits";
 import { HELP_AREAS } from "@/lib/onboarding";
 import type { Profile } from "@/lib/types";
@@ -61,19 +61,25 @@ export function ProfileView({ profile }: { profile: Profile }) {
     );
   };
 
-  const flipPermission = (key: string) => {
-    if (!current.trusted_contact) return;
-    const value = !current.trusted_contact.permissions[key];
-    save(
-      { trusted_contact_permissions: { [key]: value } },
-      {
-        ...current,
-        trusted_contact: {
-          ...current.trusted_contact,
-          permissions: { ...current.trusted_contact.permissions, [key]: value },
-        },
-      },
-    );
+  /* Permissions live on each contact now, so this goes to /contacts/{id}
+     rather than to the profile. The optimistic copy still updates here, so the
+     switch does not wait on a round trip. */
+  const flipPermission = (contactId: string, key: string) => {
+    const contact = current.trusted_contacts.find((c) => c.id === contactId);
+    if (!contact) return;
+    const value = !contact.permissions[key];
+
+    setCurrent({
+      ...current,
+      trusted_contacts: current.trusted_contacts.map((c) =>
+        c.id === contactId
+          ? { ...c, permissions: { ...c.permissions, [key]: value } }
+          : c,
+      ),
+    });
+    startTransition(async () => {
+      await updateContact(contactId, { permissions: { [key]: value } });
+    });
   };
 
   return (
@@ -82,30 +88,14 @@ export function ProfileView({ profile }: { profile: Profile }) {
         {/* ---- Who, and which section ------------------------------------- */}
         <div className="card min-w-0 p-3.5">
           <div className="flex flex-col items-center px-2 pt-4 pb-5">
-            <Avatar avatar={current.avatar} name={current.full_name} size={76} />
+            <span
+              aria-hidden
+              className="flex h-[76px] w-[76px] items-center justify-center rounded-full bg-green-wash font-display text-[30px] text-green"
+            >
+              {(current.full_name.trim()[0] ?? "N").toUpperCase()}
+            </span>
             <p className="mt-3 text-[16px] font-medium text-ink">{current.full_name}</p>
             <p className="mt-0.5 text-caption text-faint">{current.email}</p>
-
-            <div className="mt-4 flex flex-wrap justify-center gap-1.5" role="radiogroup" aria-label="Avatar">
-              {[null, ...AVATARS].map((key) => {
-                const on = (current.avatar ?? null) === key;
-                return (
-                  <button
-                    key={key ?? "initial"}
-                    type="button"
-                    role="radio"
-                    aria-checked={on}
-                    aria-label={key ? `Avatar: ${key}` : "Use my initial"}
-                    onClick={() => save({ avatar: key }, { ...current, avatar: key })}
-                    className={`rounded-full p-0.5 transition-shadow ${
-                      on ? "ring-2 ring-green" : "hover:ring-2 hover:ring-line"
-                    }`}
-                  >
-                    <Avatar avatar={key} name={current.full_name} size={30} />
-                  </button>
-                );
-              })}
-            </div>
           </div>
           <div className="scroll-x flex gap-0.5 lg:flex-col" role="tablist" aria-label="Settings">
             {TABS.map((t) => (
@@ -275,37 +265,45 @@ export function ProfileView({ profile }: { profile: Profile }) {
 
           {tab === "Trusted contact" && (
             <section className="card p-6.5">
-              {current.trusted_contact ? (
-                <>
-                  <h2 className="card-title mb-1.5 flex flex-wrap items-center gap-3">
-                    Trusted contact
-                    <span className="pill bg-green-wash text-micro text-green">
-                      {current.trusted_contact.name}
-                    </span>
-                  </h2>
-                  <p className="mb-4 text-small text-muted">
-                    {current.trusted_contact.name.split(" ")[0]} sees only what you switch on here,
-                    and every individual share is still approved separately.
-                  </p>
-                  <div className="flex flex-col">
-                    {PERMISSIONS.map((p) => (
-                      <ToggleRow
-                        key={p.key}
-                        label={p.label}
-                        sub={p.sub}
-                        on={Boolean(current.trusted_contact?.permissions[p.key])}
-                        onToggle={() => flipPermission(p.key)}
-                      />
-                    ))}
-                  </div>
-                </>
+              <h2 className="card-title mb-1.5">Trusted contacts</h2>
+              {current.trusted_contacts.length === 0 ? (
+                <p className="text-small text-muted">
+                  You have not added anyone. Nnneva works exactly the same without one — a trusted
+                  contact only ever receives what you explicitly approve.{" "}
+                  <Link href="/partner" className="text-green underline">
+                    Find someone
+                  </Link>
+                  .
+                </p>
               ) : (
                 <>
-                  <h2 className="card-title mb-1.5">Trusted contact</h2>
-                  <p className="text-small text-muted">
-                    You have not added anyone. Nnneva works exactly the same without one — a trusted
-                    contact only ever receives what you explicitly approve.
+                  <p className="mb-5 text-small text-muted">
+                    Each person sees only what you switch on for them, and every individual share is
+                    still approved separately.
                   </p>
+                  <div className="flex flex-col gap-6">
+                    {current.trusted_contacts.map((contact) => (
+                      <div key={contact.id}>
+                        <h3 className="mb-2.5 flex flex-wrap items-center gap-2.5 text-small font-medium text-ink">
+                          {contact.name}
+                          <span className="pill bg-green-wash text-micro text-green">
+                            {contact.username ? `@${contact.username}` : contact.relationship}
+                          </span>
+                        </h3>
+                        <div className="flex flex-col">
+                          {PERMISSIONS.map((p) => (
+                            <ToggleRow
+                              key={p.key}
+                              label={p.label}
+                              sub={p.sub}
+                              on={Boolean(contact.permissions[p.key])}
+                              onToggle={() => flipPermission(contact.id, p.key)}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </>
               )}
             </section>
@@ -316,6 +314,18 @@ export function ProfileView({ profile }: { profile: Profile }) {
               <h2 className="card-title mb-4.5">Account</h2>
               <dl className="grid gap-4 sm:grid-cols-2">
                 <ReadField label="Full name" value={current.full_name} />
+                {/* How other people find her. Lowercased on the way out so a
+                    capital typed here does not become a handle nobody matches. */}
+                <EditField
+                  label="Username"
+                  value={current.username}
+                  onCommit={(v) => {
+                    const handle = v.trim().toLowerCase();
+                    if (handle && handle !== current.username) {
+                      save({ username: handle }, { ...current, username: handle });
+                    }
+                  }}
+                />
                 <ReadField label="Email" value={current.email} />
                 <ReadField label="Phone" value={current.phone ?? "Not set"} />
                 <ReadField label="Due date" value={current.due_date ?? "Not set"} />

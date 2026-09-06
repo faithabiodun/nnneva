@@ -25,7 +25,13 @@ SERVICE_NAME="${SERVICE_NAME:-nnneva-api}"
 CLUSTER="${CLUSTER:-nnneva}"
 REPO="${ECR_REPO:-nnneva-api}"
 TAG="${IMAGE_TAG:-latest}"
-MODEL_ID="${BEDROCK_MODEL_ID:-anthropic.claude-opus-5}"
+# On-demand Anthropic models on Bedrock are only reachable through a regional
+# inference profile, so the id carries the "us." prefix. A bare
+# "anthropic.claude-..." id is accepted by the SDK and rejected at invoke time.
+MODEL_ID="${BEDROCK_MODEL_ID:-us.anthropic.claude-sonnet-4-5-20250929-v1:0}"
+# The second provider. Empty leaves the service on Bedrock alone.
+OPENAI_KEY="${OPENAI_API_KEY:-}"
+OPENAI_MODEL_ID="${OPENAI_MODEL:-gpt-5.3-mini}"
 LOG_GROUP="/ecs/${SERVICE_NAME}"
 
 INFRA_ROLE="${INFRA_ROLE:-nnneva-ecs-infrastructure}"
@@ -134,22 +140,25 @@ printf '  logs %s\n' "$LOG_GROUP"
 
 # ---- The service -----------------------------------------------------------
 #
-# AGENT_ENGINE is bedrock rather than auto deliberately. `auto` decides by
+# AGENT_ENGINE is model rather than auto deliberately. `auto` decides by
 # looking for explicit access keys, and there are none here — credentials come
 # from the task role — so `auto` would quietly serve the rule-based planner.
-# `bedrock` fails loudly, which is what production should do.
+# `model` fails loudly, which is what production should do.
+#
+# With OPENAI_API_KEY set the service runs both providers, Bedrock first and
+# OpenAI behind it, and only a failure of both reaches that loud failure.
 #
 # The container image already runs `alembic upgrade head` on boot. With more
 # than one task that becomes a race for the version table; move it to a one-off
 # invocation before scaling past a single instance.
 
 CONTAINER=$(DB="$DATABASE_URL" SK="$SECRET_KEY" WO="$WEB_ORIGIN" \
-  SBURL="${SUPABASE_URL:-}" \
+  SBURL="${SUPABASE_URL:-}" OAIKEY="$OPENAI_KEY" OAIMODEL="$OPENAI_MODEL_ID" \
   IMG="$IMAGE" LG="$LOG_GROUP" MODEL="$MODEL_ID" RG="$REGION" python3 - <<'PY'
 import json, os
 
 environment = [
-    {"name": "AGENT_ENGINE",      "value": "bedrock"},
+    {"name": "AGENT_ENGINE",      "value": "model"},
     {"name": "BEDROCK_MODEL_ID",  "value": os.environ["MODEL"]},
     {"name": "AWS_REGION",        "value": os.environ["RG"]},
     {"name": "WEB_ORIGIN",        "value": os.environ["WO"]},
@@ -162,6 +171,12 @@ environment = [
 # look deliberate.
 if os.environ.get("SBURL"):
     environment.append({"name": "SUPABASE_URL", "value": os.environ["SBURL"]})
+
+# OpenAI is the second provider and entirely optional. Absent key, absent
+# variable, and the service runs on Bedrock alone.
+if os.environ.get("OAIKEY"):
+    environment.append({"name": "OPENAI_API_KEY", "value": os.environ["OAIKEY"]})
+    environment.append({"name": "OPENAI_MODEL", "value": os.environ["OAIMODEL"]})
 
 print(json.dumps({
     "image": os.environ["IMG"],

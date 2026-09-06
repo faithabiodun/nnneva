@@ -27,6 +27,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -133,11 +134,12 @@ class User(Base, TimestampMixin):
     # cannot be logged into with the password form.
     password_hash: Mapped[str | None] = mapped_column(String(255), default=None)
     full_name: Mapped[str] = mapped_column(String(120))
+    # The handle other people search for. Allocated at sign-up rather than
+    # asked for: the Google route has no form to ask in, and an account with
+    # no handle is invisible to the feature the handle exists for. Unique and
+    # lowercase; app/usernames.py owns the rules.
+    username: Mapped[str] = mapped_column(String(30), unique=True, index=True)
     phone: Mapped[str | None] = mapped_column(String(40), default=None)
-    # One of a fixed set of drawn avatars, or None for the initial. Stored as a
-    # key rather than an image: no uploads, nothing to moderate, and it renders
-    # the same everywhere without a round trip.
-    avatar: Mapped[str | None] = mapped_column(String(20), default=None)
     # Notification and retention preferences, kept as plain columns rather than
     # a JSON blob so they can be queried when reminders are dispatched.
     notify_approvals: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -173,7 +175,16 @@ class User(Base, TimestampMixin):
         back_populates="user", cascade="all, delete-orphan"
     )
     contacts: Mapped[list[TrustedContact]] = relationship(
-        back_populates="user", cascade="all, delete-orphan"
+        back_populates="user",
+        cascade="all, delete-orphan",
+        foreign_keys="TrustedContact.user_id",
+        order_by="TrustedContact.created_at",
+    )
+    # The other direction: rows where this user is the one helping. Not a
+    # cascade delete from here — the mother owns the row, and losing a helper's
+    # account should not delete her contact, only unlink it.
+    helping: Mapped[list[TrustedContact]] = relationship(
+        foreign_keys="TrustedContact.linked_user_id", viewonly=True
     )
 
 
@@ -242,17 +253,66 @@ class TrustedContact(Base, TimestampMixin):
     invited_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
 
+    # Set when this contact is a Nnneva user who accepted a request, rather
+    # than someone reached by an invite link. They then read this thread while
+    # signed in as themselves, and the token above stays unused — one contact
+    # is reached one way or the other, never both.
+    linked_user_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True, default=None
+    )
+
     can_see_shared_tasks: Mapped[bool] = mapped_column(Boolean, default=False)
     can_see_appointments: Mapped[bool] = mapped_column(Boolean, default=False)
     can_get_forwarded_reminders: Mapped[bool] = mapped_column(Boolean, default=False)
     can_see_test_results: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    user: Mapped[User] = relationship(back_populates="contacts")
+    user: Mapped[User] = relationship(back_populates="contacts", foreign_keys=[user_id])
+    linked_user: Mapped[User | None] = relationship(foreign_keys=[linked_user_id])
     messages: Mapped[list["ContactMessage"]] = relationship(
         back_populates="contact",
         cascade="all, delete-orphan",
         order_by="ContactMessage.created_at",
     )
+
+
+class RequestStatus(str, enum.Enum):
+    pending = "Pending"
+    accepted = "Accepted"
+    declined = "Declined"
+
+
+class ContactRequest(Base, TimestampMixin):
+    """One person asking another to be their trusted contact.
+
+    The request carries the relationship, because the person sending it is the
+    one who knows what the other is to them, and being told "Ada added you as
+    her midwife" is a clearer thing to accept than a bare name.
+
+    Declined rows are kept rather than deleted, so a request that was turned
+    down cannot be re-sent on a loop.
+    """
+
+    __tablename__ = "contact_requests"
+    __table_args__ = (
+        UniqueConstraint("requester_id", "addressee_id", name="uq_contact_request_pair"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    requester_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    addressee_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+
+    relationship_label: Mapped[str] = mapped_column(String(60), default="Partner")
+    status: Mapped[RequestStatus] = mapped_column(
+        Enum(RequestStatus, name="request_status"), default=RequestStatus.pending
+    )
+    responded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+
+    requester: Mapped[User] = relationship(foreign_keys=[requester_id])
+    addressee: Mapped[User] = relationship(foreign_keys=[addressee_id])
 
 
 class ContactMessage(Base, TimestampMixin):

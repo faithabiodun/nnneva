@@ -8,10 +8,13 @@ from datetime import date, timedelta
 def test_health_reports_the_configuration(client):
     body = client.get("/health").json()
     assert body["status"] == "ok"
-    # No AWS credentials in the test environment, so auto resolves to scripted.
+    # No AWS credentials and no OpenAI key in the test environment, so auto
+    # resolves to the scripted planner and neither provider is named.
     assert body["mode"] == "auto"
     assert body["will_try_bedrock"] is False
-    assert body["model"] is None
+    assert body["will_try_openai"] is False
+    assert body["bedrock_model"] is None
+    assert body["openai_model"] is None
 
 
 def test_every_user_route_requires_a_token(client):
@@ -114,7 +117,7 @@ def test_onboarding_seeds_the_context_the_agent_reads(client, signed_up):
     assert profile["care_location"] == "Lagoon Antenatal Clinic"
     assert profile["gestational_week"] == 32
     assert profile["trimester"] == "third trimester"
-    assert profile["trusted_contact"]["name"] == "Chidi Adeyemi"
+    assert [c["name"] for c in profile["trusted_contacts"]] == ["Chidi Adeyemi"]
 
     memories = client.get("/memory", headers=signed_up).json()
     assert any("Lagoon" in m["fact"] for m in memories)
@@ -153,7 +156,7 @@ def test_profile_updates_persist(client, signed_up):
     ).json()
     assert updated["retention"] == "3 months"
     assert updated["notifications"]["daily_summary"] is True
-    assert updated["trusted_contact"]["permissions"]["test_results"] is True
+    assert updated["trusted_contacts"][0]["permissions"]["test_results"] is True
 
     assert client.get("/profile", headers=signed_up).json()["retention"] == "3 months"
 

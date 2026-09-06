@@ -27,6 +27,13 @@ export const NAV = [
     d: "M9 12a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM2.5 20c.5-3.2 3.2-5 6.5-5s6 1.8 6.5 5M17 8.5h4M19 6.5v4",
   },
   {
+    // The other side of the same feature: people who asked *her* for help.
+    // Someone can be on both sides at once, so both are always in the nav.
+    href: "/helping",
+    label: "Helping",
+    d: "M12 20.5S4 15.4 4 9.9A4 4 0 0 1 12 7.6 4 4 0 0 1 20 9.9c0 5.5-8 10.6-8 10.6z",
+  },
+  {
     href: "/profile",
     label: "Profile",
     d: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4.5 20.5c.6-3.6 3.7-5.5 7.5-5.5s6.9 1.9 7.5 5.5",
