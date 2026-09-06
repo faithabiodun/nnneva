@@ -28,7 +28,7 @@ export function SiteHeader() {
         <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3.5">
           <Link
             href="/login"
-            className="hidden px-1 py-2.5 text-[14.5px] whitespace-nowrap text-green-ink-deep transition-colors hover:text-ink min-[360px]:block"
+            className="hidden px-1 py-2.5 text-[14.5px] whitespace-nowrap text-green-deep transition-colors hover:text-ink min-[360px]:block"
           >
             Log in
           </Link>

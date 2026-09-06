@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-
 from fastapi import APIRouter
 
 from app.deps import CurrentUser, DbSession
@@ -35,7 +33,6 @@ def profile_payload(user: User) -> ProfileOut:
         email=user.email,
         phone=user.phone,
         avatar=user.avatar,
-        tour_seen=user.tour_seen_at is not None,
         due_date=profile.due_date if profile else None,
         gestational_week=profile.gestational_week if profile else None,
         trimester=profile.trimester if profile else None,
@@ -69,11 +66,6 @@ def read_profile(user: CurrentUser) -> ProfileOut:
 
 @router.patch("", response_model=ProfileOut)
 def update_profile(payload: ProfilePatch, user: CurrentUser, db: DbSession) -> ProfileOut:
-    # One way only. Marking the walkthrough seen is a fact; un-seeing it is not
-    # something the product needs and would be a way to nag someone repeatedly.
-    if payload.tour_seen and user.tour_seen_at is None:
-        user.tour_seen_at = datetime.now(timezone.utc)
-
     for field in ("full_name", "phone", "avatar", "contact_window", "retention"):
         value = getattr(payload, field)
         if value is not None:

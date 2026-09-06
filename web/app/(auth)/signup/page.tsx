@@ -15,7 +15,7 @@ export default function SignUpPage() {
     <AuthShell>
       <div className="rounded-[24px] bg-ink px-9 pt-9.5 pb-8.5 shadow-[0_16px_44px_rgba(11,44,34,0.16)]">
         <h1 className="font-display text-[28px] font-semibold text-white">Create your account</h1>
-        <p className="mt-2 mb-6.5 text-[14.5px] text-green-ink-soft">
+        <p className="mt-2 mb-6.5 text-[14.5px] text-green-soft">
           Two minutes of setup, then Nnneva remembers.
         </p>
 
@@ -47,14 +47,14 @@ export default function SignUpPage() {
           ]}
         />
 
-        <p className="mt-5 text-caption leading-relaxed text-green-ink-mid">
+        <p className="mt-5 text-caption leading-relaxed text-green-mid">
           Nnneva stores only what it needs to help you coordinate. Health details are never shared
           with anyone unless you allow it.
         </p>
 
-        <p className="mt-5 text-center text-caption text-green-ink-soft">
+        <p className="mt-5 text-center text-caption text-green-soft">
           Already have an account?{" "}
-          <Link href="/login" className="text-white hover:text-green-ink-soft">
+          <Link href="/login" className="text-white hover:text-green-soft">
             Log in
           </Link>
         </p>

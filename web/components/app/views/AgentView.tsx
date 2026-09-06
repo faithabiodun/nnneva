@@ -12,9 +12,9 @@ import type { AgentRun, RunStatus } from "@/lib/types";
 const STEP_MS = 420;
 
 const RUN_TONE: Record<RunStatus, string> = {
-  complete: "bg-green-wash text-green-ink",
-  running: "bg-pink-wash text-pink-ink-deep",
-  awaiting_approval: "bg-pink-wash text-pink-ink-deep",
+  complete: "bg-green-wash text-green",
+  running: "bg-pink-wash text-pink-deep",
+  awaiting_approval: "bg-pink-wash text-pink-deep",
   escalated: "bg-danger-wash text-danger",
   failed: "bg-surface-2 text-muted",
 };
@@ -222,7 +222,7 @@ export function AgentView({
           {pending && revealed >= allSteps.length && (
             <section className="animate-rise rounded-lg bg-pink-wash p-5.5">
               <CardLabel>
-                <span className="text-pink-ink-deep">Needs your approval</span>
+                <span className="text-pink-deep">Needs your approval</span>
               </CardLabel>
               <p className="mt-2.5 text-body text-ink">{pending.question}</p>
               <div className="mt-4 flex flex-wrap gap-2.5">

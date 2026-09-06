@@ -38,9 +38,9 @@ function artFor(action: AgentAction) {
 }
 
 const RUN_TONE: Record<RunStatus, { dot: string; pill: string }> = {
-  complete: { dot: "bg-green", pill: "bg-green-wash text-green-ink" },
+  complete: { dot: "bg-green", pill: "bg-green-wash text-green" },
   running: { dot: "bg-green-mid", pill: "bg-surface-2 text-muted" },
-  awaiting_approval: { dot: "bg-pink", pill: "bg-pink-wash text-pink-ink-deep" },
+  awaiting_approval: { dot: "bg-pink", pill: "bg-pink-wash text-pink-deep" },
   escalated: { dot: "bg-danger", pill: "bg-danger-wash text-danger" },
   failed: { dot: "bg-faint", pill: "bg-surface-2 text-muted" },
 };
@@ -154,10 +154,10 @@ export function ActivityView({ days }: { days: ActivityDay[] }) {
                               <span
                                 className={`ml-auto shrink-0 text-caption ${
                                   a.result === "awaiting_approval"
-                                    ? "text-pink-ink-deep"
+                                    ? "text-pink-deep"
                                     : a.result === "blocked"
                                       ? "text-danger"
-                                      : "text-green-ink"
+                                      : "text-green"
                                 }`}
                               >
                                 {a.result_label}
@@ -178,7 +178,7 @@ export function ActivityView({ days }: { days: ActivityDay[] }) {
               {days.length === 0 ? (
                 <>
                   Nothing here yet.{" "}
-                  <Link href="/agent" className="font-medium text-pink-ink hover:underline">
+                  <Link href="/agent" className="font-medium text-pink hover:underline">
                     Give Nnneva a goal
                   </Link>{" "}
                   and every step it takes will be recorded here.

@@ -105,8 +105,6 @@ export type ProfilePatch = {
   full_name?: string;
   phone?: string;
   avatar?: string | null;
-  /** One way only — the API refuses to un-see it. */
-  tour_seen?: boolean;
   /** Creates the pregnancy profile when there is none yet. */
   due_date?: string;
   care_location?: string;

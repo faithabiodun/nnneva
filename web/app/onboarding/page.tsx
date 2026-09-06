@@ -131,7 +131,7 @@ export default function OnboardingPage() {
         <div className="grid w-full max-w-[1040px] gap-10 lg:grid-cols-[1.25fr_0.75fr] lg:items-start lg:gap-14">
           {/* ---- The question ------------------------------------------- */}
           <div key={i} className="animate-rise">
-            <p className="mb-3.5 text-[11.5px] tracking-[0.13em] uppercase text-pink-ink">
+            <p className="mb-3.5 text-[11.5px] tracking-[0.13em] uppercase text-pink">
               {step.eyebrow}
             </p>
             <h1 className="font-display text-[clamp(28px,4vw,42px)] leading-[1.1] font-medium tracking-[-0.02em]">

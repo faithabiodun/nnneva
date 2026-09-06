@@ -15,7 +15,7 @@ export type AvatarKey = (typeof AVATARS)[number];
 const ART: Record<AvatarKey, { bg: string; fg: string; path: React.ReactNode }> = {
   bloom: {
     bg: "var(--color-pink-wash)",
-    fg: "var(--color-pink-ink)",
+    fg: "var(--color-pink)",
     path: (
       <>
         <circle cx="16" cy="10" r="4" />
@@ -27,12 +27,12 @@ const ART: Record<AvatarKey, { bg: string; fg: string; path: React.ReactNode }> 
   },
   moon: {
     bg: "var(--color-green-wash)",
-    fg: "var(--color-green-ink)",
+    fg: "var(--color-green)",
     path: <path d="M22 18.5A8 8 0 0 1 13.5 10a8.2 8.2 0 1 0 8.5 8.5Z" />,
   },
   leaf: {
     bg: "var(--color-green-tint)",
-    fg: "var(--color-green-ink)",
+    fg: "var(--color-green)",
     path: <path d="M9 23c0-7 5-12 14-13 0 9-5 13-11 13H9Zm0 0 6-6" />,
   },
   wave: {
@@ -42,7 +42,7 @@ const ART: Record<AvatarKey, { bg: string; fg: string; path: React.ReactNode }> 
   },
   sun: {
     bg: "var(--color-pink-wash)",
-    fg: "var(--color-pink-ink)",
+    fg: "var(--color-pink)",
     path: (
       <>
         <circle cx="16" cy="16" r="5" />

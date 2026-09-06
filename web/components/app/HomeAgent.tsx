@@ -154,7 +154,7 @@ export function HomeAgent({ onboarded }: { onboarded: boolean }) {
           )}
 
           <div className="flex flex-wrap items-center gap-3">
-            <Link href="/agent" className="text-caption text-pink-ink hover:text-pink-ink-deep">
+            <Link href="/agent" className="text-caption text-pink hover:text-pink-deep">
               Open the full run
             </Link>
             {/* Which planner actually ran. Recorded by the server, never guessed:
@@ -164,7 +164,7 @@ export function HomeAgent({ onboarded }: { onboarded: boolean }) {
               {run.engine === "bedrock" ? "Claude via Bedrock" : "Rule-based planner"}
             </span>
             {run.approvals.length > 0 && (
-              <Link href="/agent" className="pill bg-pink-wash text-caption text-pink-ink-deep">
+              <Link href="/agent" className="pill bg-pink-wash text-caption text-pink-deep">
                 {run.approvals.length} waiting on you
               </Link>
             )}

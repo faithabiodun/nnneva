@@ -6,7 +6,6 @@ import { logOut } from "@/app/actions/auth";
 import { updateProfile } from "@/app/actions/app";
 import { AppShell } from "@/components/app/AppShell";
 import { AVATARS, Avatar } from "@/components/app/Avatar";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { EditField, ReadField, ToggleRow } from "@/components/app/Bits";
 import { HELP_AREAS } from "@/lib/onboarding";
 import type { Profile } from "@/lib/types";
@@ -189,7 +188,7 @@ export function ProfileView({ profile }: { profile: Profile }) {
                         }}
                         className={`pill text-caption transition-colors ${
                           on
-                            ? "bg-green-wash text-green-ink"
+                            ? "bg-green-wash text-green"
                             : "bg-surface text-muted hover:bg-surface-2 hover:text-ink"
                         }`}
                       >
@@ -266,7 +265,7 @@ export function ProfileView({ profile }: { profile: Profile }) {
                   product's promise rather than another setting. */}
               <section className="rounded-lg bg-ink p-6.5">
                 <h2 className="card-title mb-1.5 !text-white">Sharing outside your account</h2>
-                <p className="text-small leading-[1.6] text-green-ink-soft">
+                <p className="text-small leading-[1.6] text-green-soft">
                   Nothing about your pregnancy leaves Nnneva without an approval from you, and the
                   approval is asked for every single time. Nnneva never sells or trades your data.
                 </p>
@@ -280,7 +279,7 @@ export function ProfileView({ profile }: { profile: Profile }) {
                 <>
                   <h2 className="card-title mb-1.5 flex flex-wrap items-center gap-3">
                     Trusted contact
-                    <span className="pill bg-green-wash text-micro text-green-ink">
+                    <span className="pill bg-green-wash text-micro text-green">
                       {current.trusted_contact.name}
                     </span>
                   </h2>
@@ -321,17 +320,7 @@ export function ProfileView({ profile }: { profile: Profile }) {
                 <ReadField label="Phone" value={current.phone ?? "Not set"} />
                 <ReadField label="Due date" value={current.due_date ?? "Not set"} />
               </dl>
-              <div className="mt-6 flex items-center justify-between gap-4 border-t border-line pt-5">
-                <div className="min-w-0">
-                  <p className="text-small text-ink">Appearance</p>
-                  <p className="mt-0.5 text-caption text-muted-2">
-                    Follows your device unless you choose otherwise.
-                  </p>
-                </div>
-                <ThemeToggle />
-              </div>
-
-              <form action={logOut} className="mt-5">
+              <form action={logOut} className="mt-6 border-t border-line pt-5">
                 <button type="submit" className="btn btn-quiet">
                   Log out
                 </button>

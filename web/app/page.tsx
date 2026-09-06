@@ -43,7 +43,7 @@ export default function LandingPage() {
             <h1 className="mx-auto font-display text-[clamp(40px,7.2vw,96px)] leading-[1.02] font-semibold tracking-[-0.032em] text-balance text-ink">
               You&rsquo;re not alone,
               <br />
-              <span className="text-pink-ink">Nnneva</span> is here.
+              <span className="text-pink">Nnneva</span> is here.
             </h1>
 
             <p className="mx-auto mt-7 max-w-[600px] text-[clamp(17px,1.7vw,23px)] leading-[1.55] text-pretty text-[#3F5850]">
@@ -102,7 +102,7 @@ export default function LandingPage() {
           <ol className="mt-10 grid gap-6 md:grid-cols-3">
             {HOW_IT_WORKS.map((step, i) => (
               <li key={step.title}>
-                <p className="tnum font-display text-[34px] leading-none text-pink-ink">
+                <p className="tnum font-display text-[34px] leading-none text-pink">
                   {String(i + 1).padStart(2, "0")}
                 </p>
                 <h3 className="mt-4 text-h3 font-sans font-medium">{step.title}</h3>
@@ -143,7 +143,7 @@ export default function LandingPage() {
           <h2 className="font-display text-[clamp(30px,4vw,52px)] font-medium tracking-[-0.025em] text-canvas">
             Fewer things to remember.
           </h2>
-          <p className="mx-auto mt-4 max-w-[520px] text-lead text-green-ink-soft">
+          <p className="mx-auto mt-4 max-w-[520px] text-lead text-green-soft">
             Set up your pregnancy context in about two minutes.
           </p>
           <Link

@@ -1,5 +1,4 @@
 import { SetupPrompt } from "@/components/app/SetupPrompt";
-import { WelcomeTour } from "@/components/app/WelcomeTour";
 import { ShellProvider } from "@/components/app/ShellContext";
 import { api } from "@/lib/api";
 import type { Approval, Profile } from "@/lib/types";
@@ -24,9 +23,6 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         onboarded: profile.onboarded,
       }}
     >
-      {/* First run only. It sits above the setup prompt because being told
-          what the product is comes before being asked to finish setting it up. */}
-      {!profile.tour_seen && <WelcomeTour name={profile.full_name} />}
       <SetupPrompt onboarded={profile.onboarded} />
       {children}
     </ShellProvider>
