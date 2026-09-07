@@ -32,7 +32,10 @@ export async function signUp(_prev: AuthState, form: FormData): Promise<AuthStat
   }
 
   await startSession(token.access_token);
-  redirect("/onboarding");
+  // Everyone lands on /welcome first. It asks who they are and forwards by the
+  // answer, and it bounces straight through for anyone who has answered — so
+  // there is one entry point rather than a redirect rule per sign-in route.
+  redirect("/welcome");
 }
 
 export async function logIn(_prev: AuthState, form: FormData): Promise<AuthState> {
@@ -50,7 +53,7 @@ export async function logIn(_prev: AuthState, form: FormData): Promise<AuthState
 
   await startSession(token.access_token);
   // Someone who signed up but never finished setup lands back where they left.
-  redirect(token.onboarded ? "/home" : "/onboarding");
+  redirect(token.onboarded ? "/home" : "/welcome");
 }
 
 export async function logOut(): Promise<void> {

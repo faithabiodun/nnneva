@@ -36,7 +36,9 @@ from app.schemas import (
     HelpingOut,
     PartnerTaskOut,
     PersonOut,
+    UsernameCheckOut,
 )
+from app.usernames import problem as username_problem
 
 router = APIRouter(prefix="/people", tags=["people"])
 
@@ -103,6 +105,27 @@ def search(user: CurrentUser, db: DbSession, q: str = Query(min_length=2, max_le
         PersonOut(username=p.username, full_name=p.full_name, state=state_of(p))
         for p in people
     ]
+
+
+@router.get("/username-available", response_model=UsernameCheckOut)
+def username_available(user: CurrentUser, db: DbSession, u: str = Query(max_length=30)):
+    """Whether a handle is free, for the picker to check as someone types.
+
+    Behind the session on purpose. Unauthenticated, this would be an oracle
+    for enumerating handles; behind it, a signed-in person can already find
+    handles through search, so it tells them nothing new.
+    """
+    handle = (u or "").strip().lower()
+    complaint = username_problem(handle)
+    if complaint:
+        return UsernameCheckOut(username=handle, available=False, problem=complaint)
+
+    taken = db.scalars(select(User).where(User.username == handle)).first()
+    if taken is not None and taken.id != user.id:
+        return UsernameCheckOut(
+            username=handle, available=False, problem="That username is taken."
+        )
+    return UsernameCheckOut(username=handle, available=True, problem=None)
 
 
 # ---- Requests --------------------------------------------------------------

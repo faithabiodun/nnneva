@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, status
 
 from app.deps import CurrentUser, DbSession
-from app.models import Memory, MemoryKind, PregnancyProfile, TrustedContact
+from app.models import Memory, MemoryKind, PregnancyProfile, TrustedContact, UserRole
 from app.schemas import OnboardingIn, ProfileOut
 from app.routers.profile import profile_payload
 
@@ -14,6 +14,12 @@ router = APIRouter(prefix="/onboarding", tags=["onboarding"])
 
 @router.post("", response_model=ProfileOut, status_code=status.HTTP_201_CREATED)
 def complete_onboarding(payload: OnboardingIn, user: CurrentUser, db: DbSession) -> ProfileOut:
+    # Giving a due date *is* answering the first-run question, so an account
+    # cannot end up onboarded with no role — which would send someone back to
+    # a welcome screen after they had already told the app everything.
+    if user.role is None:
+        user.role = UserRole.expecting
+
     profile = user.profile or PregnancyProfile(user_id=user.id, due_date=payload.due_date)
     profile.due_date = payload.due_date
     profile.care_location = payload.care_location

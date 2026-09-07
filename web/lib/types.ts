@@ -145,6 +145,8 @@ export type Profile = {
   notifications: Record<string, boolean>;
   /** The handle other people search for. Allocated at sign-up, editable here. */
   username: string;
+  /** Null until the first-run step has been answered. */
+  role: "expecting" | "postpartum" | "supporter" | null;
   /** Everyone helping her. Permissions live on each one, not on the account. */
   trusted_contacts: {
     id: string;

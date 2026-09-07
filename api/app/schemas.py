@@ -7,6 +7,7 @@ reassemble a page out of four calls.
 from __future__ import annotations
 
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
@@ -195,6 +196,8 @@ class SafetyEventOut(BaseModel):
 class ProfileOut(BaseModel):
     full_name: str
     username: str
+    # Null until the first-run step has been answered.
+    role: str | None
     email: str
     phone: str | None
     due_date: date | None
@@ -273,6 +276,10 @@ class ApprovalDecision(BaseModel):
 
 class ProfilePatch(BaseModel):
     full_name: str | None = None
+    # Validated and checked for uniqueness in the route, which can return a
+    # sentence rather than a schema error.
+    username: str | None = Field(default=None, max_length=30)
+    role: Literal["expecting", "postpartum", "supporter"] | None = None
     phone: str | None = None
     # The pregnancy context, editable after the fact. due_date creates the
     # profile row when there is none, so someone who skipped onboarding can
@@ -351,6 +358,13 @@ class PersonOut(BaseModel):
     # "none", "pending_outgoing", "pending_incoming", "connected" — so the
     # button can say what it will do instead of failing on the second press.
     state: str
+
+
+class UsernameCheckOut(BaseModel):
+    username: str
+    available: bool
+    # Phrased for the person choosing, not for a developer reading a log.
+    problem: str | None
 
 
 class ContactRequestIn(BaseModel):

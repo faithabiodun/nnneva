@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
 
   await startSession(token.access_token);
 
-  const destination = saved.next || (token.onboarded ? "/home" : "/onboarding");
+  const destination = saved.next || (token.onboarded ? "/home" : "/welcome");
   return NextResponse.redirect(absoluteUrl(destination, request));
 }
 

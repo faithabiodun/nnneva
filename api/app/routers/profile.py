@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, status
+from sqlalchemy import select
 
 from app.deps import CurrentUser, DbSession
-from app.models import Memory, MemoryKind, PregnancyProfile, User
+from app.models import Memory, MemoryKind, PregnancyProfile, User, UserRole
 from app.schemas import ProfileOut, ProfilePatch
+from app.usernames import problem as username_problem
 
 router = APIRouter(prefix="/profile", tags=["profile"])
 
@@ -30,6 +32,7 @@ def profile_payload(user: User) -> ProfileOut:
     return ProfileOut(
         full_name=user.full_name,
         username=user.username,
+        role=user.role.name if user.role else None,
         email=user.email,
         phone=user.phone,
         due_date=profile.due_date if profile else None,
@@ -68,6 +71,22 @@ def read_profile(user: CurrentUser) -> ProfileOut:
 
 @router.patch("", response_model=ProfileOut)
 def update_profile(payload: ProfilePatch, user: CurrentUser, db: DbSession) -> ProfileOut:
+    # The handle is the one field with a shape and a uniqueness rule, so it is
+    # checked here rather than in the schema — a sentence is more use than a
+    # regex failure to someone typing a name for themselves.
+    if payload.username is not None:
+        handle = payload.username.strip().lower()
+        if handle != user.username:
+            complaint = username_problem(handle)
+            if complaint:
+                raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, complaint)
+            if db.scalars(select(User).where(User.username == handle)).first():
+                raise HTTPException(status.HTTP_409_CONFLICT, "That username is taken.")
+            user.username = handle
+
+    if payload.role is not None:
+        user.role = UserRole[payload.role]
+
     for field in ("full_name", "phone", "contact_window", "retention"):
         value = getattr(payload, field)
         if value is not None:

@@ -107,6 +107,7 @@ export async function forgetMemory(memoryId: string): Promise<void> {
 export type ProfilePatch = {
   full_name?: string;
   username?: string;
+  role?: "expecting" | "postpartum" | "supporter";
   phone?: string;
   /** Creates the pregnancy profile when there is none yet. */
   due_date?: string;

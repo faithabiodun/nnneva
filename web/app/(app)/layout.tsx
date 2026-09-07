@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+
 import { SetupPrompt } from "@/components/app/SetupPrompt";
 import { ShellProvider } from "@/components/app/ShellContext";
 import { api } from "@/lib/api";
@@ -13,6 +15,11 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     api.get<Approval[]>("/approvals"),
   ]);
 
+  // No role means the first-run step has not been answered, and everything
+  // below assumes an answer — the sidebar shows a week count, the prompt asks
+  // for a due date. Ask before assuming.
+  if (!profile.role) redirect("/welcome");
+
   return (
     <ShellProvider
       value={{
@@ -23,7 +30,9 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         onboarded: profile.onboarded,
       }}
     >
-      <SetupPrompt onboarded={profile.onboarded} />
+      {/* Only someone expecting is missing something by having no due date.
+          A supporter has none, and someone postpartum is past it. */}
+      <SetupPrompt onboarded={profile.onboarded || profile.role !== "expecting"} />
       {children}
     </ShellProvider>
   );

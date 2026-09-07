@@ -24,6 +24,7 @@ const SIGNED_IN_ONLY = [
   "/helping",
   "/profile",
   "/onboarding",
+  "/welcome",
 ];
 
 // The invite-link pages live under /invite, deliberately outside the list

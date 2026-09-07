@@ -59,6 +59,19 @@ class TimestampMixin:
 # ---------------------------------------------------------------------------
 
 
+class UserRole(str, enum.Enum):
+    """Why someone is here, asked once at first run.
+
+    It decides what the app opens on and what it stops asking for: a supporter
+    has no due date and should never be nagged for one, and someone who has
+    already given birth should not be walked through a pregnancy wizard.
+    """
+
+    expecting = "Expecting"
+    postpartum = "Postpartum"
+    supporter = "Supporter"
+
+
 class TaskStatus(str, enum.Enum):
     todo = "To do"
     in_progress = "In progress"
@@ -139,6 +152,12 @@ class User(Base, TimestampMixin):
     # no handle is invisible to the feature the handle exists for. Unique and
     # lowercase; app/usernames.py owns the rules.
     username: Mapped[str] = mapped_column(String(30), unique=True, index=True)
+    # Null until the first-run step asks. That null is the signal the app uses
+    # to send someone to /welcome rather than into a product that assumes a
+    # pregnancy they may not have.
+    role: Mapped["UserRole | None"] = mapped_column(
+        Enum(UserRole, name="user_role"), default=None
+    )
     phone: Mapped[str | None] = mapped_column(String(40), default=None)
     # Notification and retention preferences, kept as plain columns rather than
     # a JSON blob so they can be queried when reminders are dispatched.
