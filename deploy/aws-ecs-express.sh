@@ -42,6 +42,12 @@ MODEL_ID="${BEDROCK_MODEL_ID:-us.anthropic.claude-haiku-4-5-20251001-v1:0}"
 FALLBACK_MODEL_ID="${BEDROCK_FALLBACK_MODEL_ID:-us.anthropic.claude-sonnet-4-5-20250929-v1:0}"
 OPENAI_KEY="${OPENAI_API_KEY:-}"
 OPENAI_MODEL_ID="${OPENAI_MODEL:-gpt-5.3-mini}"
+# DeepSeek, through its OpenAI-compatible endpoint. Empty leaves it off.
+DEEPSEEK_KEY="${DEEPSEEK_API_KEY:-}"
+DEEPSEEK_MODEL_ID="${DEEPSEEK_MODEL:-deepseek-chat}"
+# Which providers to try, in order. Bedrock leads by default because it runs
+# inside this account, so nothing about a pregnancy leaves it.
+PRIORITY="${MODEL_PRIORITY:-bedrock,deepseek,openai}"
 LOG_GROUP="/ecs/${SERVICE_NAME}"
 
 INFRA_ROLE="${INFRA_ROLE:-nnneva-ecs-infrastructure}"
@@ -184,12 +190,14 @@ printf '  logs %s\n' "$LOG_GROUP"
 
 CONTAINER=$(DB="$DATABASE_URL" SK="$SECRET_KEY" WO="$WEB_ORIGIN" \
   SBURL="${SUPABASE_URL:-}" OAIKEY="$OPENAI_KEY" OAIMODEL="$OPENAI_MODEL_ID" \
+  DSKEY="$DEEPSEEK_KEY" DSMODEL="$DEEPSEEK_MODEL_ID" PRIORITY="$PRIORITY" \
   IMG="$IMAGE" LG="$LOG_GROUP" MODEL="$MODEL_ID" FALLBACK="$FALLBACK_MODEL_ID" \
   RG="$REGION" python3 - <<'PY'
 import json, os
 
 environment = [
     {"name": "AGENT_ENGINE",      "value": "model"},
+    {"name": "MODEL_PRIORITY",    "value": os.environ["PRIORITY"]},
     {"name": "BEDROCK_MODEL_ID",  "value": os.environ["MODEL"]},
     {"name": "BEDROCK_FALLBACK_MODEL_ID", "value": os.environ["FALLBACK"]},
     {"name": "AWS_REGION",        "value": os.environ["RG"]},
@@ -209,6 +217,12 @@ if os.environ.get("SBURL"):
 if os.environ.get("OAIKEY"):
     environment.append({"name": "OPENAI_API_KEY", "value": os.environ["OAIKEY"]})
     environment.append({"name": "OPENAI_MODEL", "value": os.environ["OAIMODEL"]})
+
+# DeepSeek likewise. Note this is the one provider that sends a pregnancy's
+# details outside this AWS account, so it is only on when a key is passed in.
+if os.environ.get("DSKEY"):
+    environment.append({"name": "DEEPSEEK_API_KEY", "value": os.environ["DSKEY"]})
+    environment.append({"name": "DEEPSEEK_MODEL", "value": os.environ["DSMODEL"]})
 
 print(json.dumps({
     "image": os.environ["IMG"],

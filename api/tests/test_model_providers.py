@@ -125,3 +125,84 @@ def test_the_openai_model_id_is_configurable():
     model = build_model(settings(agent_engine="auto", openai_api_key="sk-test",
                                  openai_model="something-else"))
     assert model.config["model_id"] == "something-else"
+
+
+# ---- DeepSeek --------------------------------------------------------------
+#
+# Reached through its OpenAI-compatible endpoint, so the thing worth pinning is
+# that it actually points somewhere else. A missing base_url would send a
+# DeepSeek key to OpenAI, which fails in a way that reads like a bad key.
+
+
+def test_deepseek_targets_its_own_endpoint():
+    model = build_model(settings(agent_engine="auto", deepseek_api_key="sk-test"))
+    assert type(model).__name__ == "OpenAIModel"
+    assert model.client_args["base_url"] == "https://api.deepseek.com"
+    assert model.client_args["api_key"] == "sk-test"
+
+
+def test_deepseek_defaults_to_the_moving_alias():
+    """A version string goes stale and then fails at call time; the alias does
+    not, and DeepSeek keeps it pointed at their current model."""
+    model = build_model(settings(agent_engine="auto", deepseek_api_key="sk-test"))
+    assert model.config["model_id"] == "deepseek-chat"
+
+
+def test_deepseek_uses_the_older_max_tokens_parameter():
+    """DeepSeek follows the original OpenAI shape and rejects the newer name."""
+    model = build_model(settings(agent_engine="auto", deepseek_api_key="sk-test"))
+    assert "max_tokens" in model.config["params"]
+    assert "max_completion_tokens" not in model.config["params"]
+
+
+def test_a_key_alone_is_enough_to_try_a_model():
+    s = settings(agent_engine="auto", deepseek_api_key="sk-test")
+    assert s.use_deepseek_model is True
+    assert s.use_model is True
+
+
+def test_no_key_means_deepseek_is_never_called():
+    assert settings(agent_engine="model").use_deepseek_model is False
+
+
+# ---- The order providers are tried in --------------------------------------
+
+
+def test_bedrock_leads_by_default():
+    """It runs inside this account's own AWS, so nothing about a pregnancy
+    leaves it. Putting a third party first should take a deliberate setting."""
+    s = settings(agent_engine="model", deepseek_api_key="sk-test")
+    assert [c.name for c in build_model(s).candidates] == [
+        "bedrock", "bedrock-2", "deepseek",
+    ]
+
+
+def test_the_order_can_be_reversed():
+    s = settings(agent_engine="model", deepseek_api_key="sk-test",
+                 model_priority="deepseek,bedrock")
+    assert [c.name for c in build_model(s).candidates] == [
+        "deepseek", "bedrock", "bedrock-2",
+    ]
+    assert engine_label(s) == "deepseek+bedrock"
+
+
+def test_a_provider_left_out_of_the_setting_still_runs_last():
+    """A typo in the order must not silently disable a configured provider."""
+    s = settings(agent_engine="model", deepseek_api_key="sk-test",
+                 openai_api_key="sk-o", model_priority="deepseek")
+    assert [c.name for c in build_model(s).candidates] == [
+        "deepseek", "bedrock", "bedrock-2", "openai",
+    ]
+
+
+def test_an_unknown_name_in_the_order_is_ignored():
+    s = settings(agent_engine="model", model_priority="nonsense,bedrock")
+    assert s.provider_order[0] == "bedrock"
+
+
+def test_health_lists_them_in_the_configured_order():
+    from app.agent.models import describe
+
+    s = settings(agent_engine="model", deepseek_api_key="sk-test",
+                 model_priority="deepseek,bedrock")
+    assert describe(s)[0] == "deepseek-chat"

@@ -43,6 +43,24 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openai_model: str = "gpt-5.3-mini"
 
+    # DeepSeek, reached through its OpenAI-compatible endpoint.
+    #
+    # `deepseek-chat` is an alias DeepSeek keeps pointed at its current model
+    # rather than a version string that goes stale. Prefer it to naming a
+    # release: a wrong id here fails at call time, not at startup, which is
+    # the failure mode that cost this project days already.
+    deepseek_api_key: str = ""
+    deepseek_model: str = "deepseek-chat"
+    deepseek_base_url: str = "https://api.deepseek.com"
+
+    # Which providers to try, in order. The first that answers wins; a
+    # provider that keeps failing sinks below the healthier ones.
+    #
+    # Bedrock leads by default because it runs inside this account's own AWS,
+    # so nothing about a pregnancy leaves it. Putting a third party first is a
+    # deliberate choice, which is why it takes an explicit setting.
+    model_priority: str = "bedrock,deepseek,openai"
+
     # Signs session tokens. Generate one with:
     #   python -c "import secrets; print(secrets.token_urlsafe(48))"
     secret_key: str = "change-me"
@@ -108,8 +126,25 @@ class Settings(BaseSettings):
         return self.agent_engine != "scripted" and self.has_openai_key
 
     @property
+    def use_deepseek_model(self) -> bool:
+        return self.agent_engine != "scripted" and bool(self.deepseek_api_key)
+
+    @property
+    def provider_order(self) -> list[str]:
+        """The configured order, keeping only names this build knows."""
+        known = {"bedrock", "deepseek", "openai"}
+        wanted = [p.strip().lower() for p in self.model_priority.split(",") if p.strip()]
+        seen: list[str] = []
+        for name in wanted:
+            if name in known and name not in seen:
+                seen.append(name)
+        # Anything left out of the setting still goes last rather than being
+        # silently dropped: a typo should not disable a configured provider.
+        return seen + [n for n in ("bedrock", "deepseek", "openai") if n not in seen]
+
+    @property
     def use_model(self) -> bool:
-        return self.use_bedrock_model or self.use_openai_model
+        return self.use_bedrock_model or self.use_deepseek_model or self.use_openai_model
 
     @property
     def model_required(self) -> bool:
