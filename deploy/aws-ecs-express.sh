@@ -102,6 +102,18 @@ aws iam attach-role-policy --role-name "$EXEC_ROLE" \
 
 ensure_role "$TASK_ROLE" "ecs-tasks.amazonaws.com" \
   "What the running Nnneva container may do: invoke Bedrock"
+# The foundation-model ARN is deliberately region-wildcarded.
+#
+# A "us." model id is a cross-region inference profile: Bedrock accepts the
+# call in this region and may route it to any region the profile covers
+# (us-east-1, us-east-2, us-west-2). Invoking through one needs InvokeModel on
+# the profile *and* on the underlying foundation model in whichever region the
+# call lands in. Pinning the model to $REGION alone makes roughly two calls in
+# three fail with AccessDenied — intermittently, which is the hardest kind of
+# failure to read.
+#
+# The profile ARN stays account- and region-scoped, because that is where the
+# profile itself lives.
 aws iam put-role-policy --role-name "$TASK_ROLE" --policy-name bedrock-invoke \
   --policy-document "{
     \"Version\": \"2012-10-17\",
@@ -109,7 +121,7 @@ aws iam put-role-policy --role-name "$TASK_ROLE" --policy-name bedrock-invoke \
       \"Effect\": \"Allow\",
       \"Action\": [\"bedrock:InvokeModel\", \"bedrock:InvokeModelWithResponseStream\"],
       \"Resource\": [
-        \"arn:aws:bedrock:${REGION}::foundation-model/anthropic.*\",
+        \"arn:aws:bedrock:*::foundation-model/anthropic.*\",
         \"arn:aws:bedrock:${REGION}:${ACCOUNT_ID}:inference-profile/*\"
       ]
     }]
