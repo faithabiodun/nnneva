@@ -130,7 +130,10 @@ def test_health_distinguishes_configuration_from_reachability(client, model_mode
     model_mode("auto")
     body = client.get("/health").json()
     assert body["mode"] == "auto"
-    assert body["will_try_bedrock"] is True
+    # Credentials are present, so Bedrock is worth attempting — which is not
+    # the same as it being reachable. Whether a given run got there is on the
+    # run's own `engine` field.
+    assert body["providers"] == ["bedrock"]
     assert body["falls_back_to_scripted"] is True
 
     model_mode("model")

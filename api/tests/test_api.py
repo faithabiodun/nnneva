@@ -8,13 +8,11 @@ from datetime import date, timedelta
 def test_health_reports_the_configuration(client):
     body = client.get("/health").json()
     assert body["status"] == "ok"
-    # No AWS credentials and no OpenAI key in the test environment, so auto
-    # resolves to the scripted planner and neither provider is named.
+    # No AWS credentials and no provider keys in the test environment, so auto
+    # resolves to the scripted planner and nothing is named.
     assert body["mode"] == "auto"
-    assert body["will_try_bedrock"] is False
-    assert body["will_try_openai"] is False
-    assert body["bedrock_model"] is None
-    assert body["openai_model"] is None
+    assert body["providers"] == []
+    assert body["models"] == []
 
 
 def test_every_user_route_requires_a_token(client):

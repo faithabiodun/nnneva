@@ -71,11 +71,20 @@ def health() -> dict[str, object]:
     return {
         "status": "ok",
         "mode": current.agent_engine,
-        "will_try_bedrock": current.use_bedrock_model,
-        "will_try_openai": current.use_openai_model,
         "falls_back_to_scripted": not current.model_required,
-        "bedrock_model": current.bedrock_model_id if current.use_bedrock_model else None,
-        "openai_model": current.openai_model if current.use_openai_model else None,
-        # Every candidate, in the order the router would try them.
+        # Which providers will be attempted, in the order they are tried. A
+        # provider missing from here is one that is configured off — which is
+        # the first thing worth knowing when the agent is answering from the
+        # scripted planner and nobody can see why.
+        "providers": [
+            name
+            for name in current.provider_order
+            if {
+                "bedrock": current.use_bedrock_model,
+                "deepseek": current.use_deepseek_model,
+                "openai": current.use_openai_model,
+            }[name]
+        ],
+        # The model ids behind those providers, same order.
         "models": describe(current),
     }
