@@ -13,7 +13,10 @@ import pytest
 from app.agent.models import DEFAULT_BEDROCK_MODEL, NoModelConfigured, build_model, engine_label
 from app.config import Settings
 
-BASE = {"secret_key": "x" * 48}
+# bedrock_discover off: these assertions are about the decision, and a
+# machine that happens to have AWS credentials must not make the suite
+# reach out to Bedrock to run them.
+BASE = {"secret_key": "x" * 48, "bedrock_discover": False}
 
 
 def settings(**over) -> Settings:
@@ -25,13 +28,14 @@ def settings(**over) -> Settings:
 # ---- Bedrock's model id ----------------------------------------------------
 
 
-def test_the_default_bedrock_id_is_an_inference_profile():
+def test_the_default_bedrock_id_is_a_haiku_inference_profile():
     """A bare anthropic.* id is accepted by the SDK and rejected at invoke time.
 
     That is what made this look like an outage rather than a typo, so the
     shape of the default is worth pinning.
     """
     assert DEFAULT_BEDROCK_MODEL.startswith("us.anthropic.")
+    assert "haiku" in DEFAULT_BEDROCK_MODEL, "Haiku is the model this runs on"
     assert Settings.model_fields["bedrock_model_id"].default == DEFAULT_BEDROCK_MODEL
 
 
@@ -88,20 +92,20 @@ def test_one_provider_is_returned_bare():
     assert type(model).__name__ == "OpenAIModel"
 
 
-def test_the_candidates_are_tried_cheapest_last_within_bedrock():
+def test_the_candidates_are_tried_in_declaration_order():
     s = settings(agent_engine="model", openai_api_key="sk-test")
     model = build_model(s)
     assert type(model).__name__ == "ModelRouter"
-    assert [c.name for c in model.candidates] == ["bedrock", "bedrock-cheap", "openai"]
+    assert [c.name for c in model.candidates] == ["bedrock", "bedrock-2", "openai"]
     assert engine_label(s) == "bedrock+openai"
 
 
-def test_the_cheap_bedrock_fallback_needs_no_extra_credentials():
+def test_the_second_bedrock_candidate_needs_no_extra_credentials():
     """It is the one fallback that works without waiting on a key from
     elsewhere, which is the whole reason it is there."""
     s = settings(agent_engine="model")
     model = build_model(s)
-    assert [c.name for c in model.candidates] == ["bedrock", "bedrock-cheap"]
+    assert [c.name for c in model.candidates] == ["bedrock", "bedrock-2"]
 
 
 def test_the_cheap_fallback_can_be_switched_off():

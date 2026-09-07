@@ -18,17 +18,24 @@ from __future__ import annotations
 
 import logging
 
+from app.agent.bedrock_catalog import resolve
+
 log = logging.getLogger("nnneva.agent")
 
 # Bedrock serves Anthropic models on demand only through an inference profile,
 # so the id carries a region prefix. A bare `anthropic.claude-...` id is
 # accepted by the SDK and then rejected at invoke time, which is how this was
 # broken for so long: the failure looked like a network problem, not a typo.
-DEFAULT_BEDROCK_MODEL = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
-# Cheaper and faster, and reachable on the same credentials — so an account
-# that cannot serve the model above still gets a real answer rather than the
-# scripted planner.
-DEFAULT_BEDROCK_FALLBACK_MODEL = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+# Haiku: the cheapest and fastest of the family, and quite enough for work
+# that is mostly reading a short profile and calling a tool.
+#
+# The exact string is a starting point, not a promise. Which ids an account
+# can invoke differs between accounts, so bedrock_catalog.resolve asks Bedrock
+# and swaps this for whatever Haiku it actually offers.
+DEFAULT_BEDROCK_MODEL = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+# Behind it, on the same credentials, for the failures that are per-model
+# rather than per-account: a throttle, or a model never granted.
+DEFAULT_BEDROCK_FALLBACK_MODEL = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
 DEFAULT_OPENAI_MODEL = "gpt-5.3-mini"
 
 MAX_TOKENS = 2048
@@ -58,15 +65,22 @@ def build_model(settings):
                 temperature=TEMPERATURE,
             )
 
-        primary = settings.bedrock_model_id or DEFAULT_BEDROCK_MODEL
+        discover = getattr(settings, "bedrock_discover", True)
+        primary = resolve(
+            settings.bedrock_model_id or DEFAULT_BEDROCK_MODEL,
+            settings.aws_region,
+            discover=discover,
+        )
         candidates.append(("bedrock", bedrock(primary)))
 
         # Two Bedrock candidates are worth having even though they share
         # credentials: the failures they cover are per-model, not per-account
         # — a throttle, or a model the account has not been granted.
-        cheaper = getattr(settings, "bedrock_fallback_model_id", "") or ""
-        if cheaper and cheaper != primary:
-            candidates.append(("bedrock-cheap", bedrock(cheaper)))
+        second = getattr(settings, "bedrock_fallback_model_id", "") or ""
+        if second:
+            second = resolve(second, settings.aws_region, discover=discover)
+        if second and second != primary:
+            candidates.append(("bedrock-2", bedrock(second)))
 
     if settings.use_openai_model:
         from strands.models.openai import OpenAIModel
@@ -89,15 +103,27 @@ def build_model(settings):
         )
 
     if len(candidates) == 1:
+        log.info("Model: %s", _id_of(candidates[0][1]))
         return candidates[0][1]
 
     from strands.models import FallbackStrategy, ModelRouter, RoutingCandidate
 
-    log.info("Model router: %s", " then ".join(name for name, _ in candidates))
+    log.info(
+        "Model router: %s",
+        " then ".join(f"{name} ({_id_of(model)})" for name, model in candidates),
+    )
     return ModelRouter(
         [RoutingCandidate(model=model, name=name) for name, model in candidates],
         strategy=FallbackStrategy(),
     )
+
+
+def _id_of(model) -> str:
+    """The model id a provider was built with, for the log line."""
+    config = getattr(model, "config", None)
+    if isinstance(config, dict):
+        return str(config.get("model_id", "?"))
+    return "?"
 
 
 def engine_label(settings) -> str:
@@ -116,14 +142,25 @@ def engine_label(settings) -> str:
 
 
 def describe(settings) -> list[str]:
-    """The candidates in the order they would be tried, for /health."""
+    """The candidates in the order they would be tried, for /health.
+
+    Reports what has already been resolved, and never triggers discovery: a
+    health check runs constantly, and putting an AWS round trip behind one is
+    how a slow Bedrock morning becomes a failing container.
+    """
     out = []
     if settings.use_bedrock_model:
-        primary = settings.bedrock_model_id or DEFAULT_BEDROCK_MODEL
+        primary = resolve(
+            settings.bedrock_model_id or DEFAULT_BEDROCK_MODEL,
+            settings.aws_region,
+            discover=False,
+        )
         out.append(primary)
-        cheaper = getattr(settings, "bedrock_fallback_model_id", "") or ""
-        if cheaper and cheaper != primary:
-            out.append(cheaper)
+        second = getattr(settings, "bedrock_fallback_model_id", "") or ""
+        if second:
+            second = resolve(second, settings.aws_region, discover=False)
+        if second and second != primary:
+            out.append(second)
     if settings.use_openai_model:
         out.append(settings.openai_model or DEFAULT_OPENAI_MODEL)
     return out

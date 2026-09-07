@@ -25,15 +25,21 @@ SERVICE_NAME="${SERVICE_NAME:-nnneva-api}"
 CLUSTER="${CLUSTER:-nnneva}"
 REPO="${ECR_REPO:-nnneva-api}"
 TAG="${IMAGE_TAG:-latest}"
-# On-demand Anthropic models on Bedrock are only reachable through a regional
-# inference profile, so the id carries the "us." prefix. A bare
-# "anthropic.claude-..." id is accepted by the SDK and rejected at invoke time.
-MODEL_ID="${BEDROCK_MODEL_ID:-us.anthropic.claude-sonnet-4-5-20250929-v1:0}"
+# Haiku: the cheapest and fastest of the family, and quite enough for work
+# that is mostly reading a short profile and calling a tool.
+#
+# On-demand Anthropic models are only reachable through a regional inference
+# profile, so the id carries the "us." prefix — a bare "anthropic.claude-..."
+# id is accepted by the SDK and rejected at invoke time.
+#
+# The exact string is a starting point. The container asks Bedrock which ids
+# this account can actually invoke and swaps in the Haiku it really has, which
+# is what the list permission above is for.
+MODEL_ID="${BEDROCK_MODEL_ID:-us.anthropic.claude-haiku-4-5-20251001-v1:0}"
 # The second provider. Empty leaves the service on Bedrock alone.
-# A cheaper Bedrock model tried when the one above does not answer. Same
-# credentials, so it needs nothing new — which is what makes it the fallback
-# that actually works today.
-FALLBACK_MODEL_ID="${BEDROCK_FALLBACK_MODEL_ID:-us.anthropic.claude-haiku-4-5-20251001-v1:0}"
+# Behind it on the same credentials, for the failures that are per-model
+# rather than per-account: a throttle, or a model never granted.
+FALLBACK_MODEL_ID="${BEDROCK_FALLBACK_MODEL_ID:-us.anthropic.claude-sonnet-4-5-20250929-v1:0}"
 OPENAI_KEY="${OPENAI_API_KEY:-}"
 OPENAI_MODEL_ID="${OPENAI_MODEL:-gpt-5.3-mini}"
 LOG_GROUP="/ecs/${SERVICE_NAME}"
@@ -128,6 +134,14 @@ aws iam put-role-policy --role-name "$TASK_ROLE" --policy-name bedrock-invoke \
         \"arn:aws:bedrock:*::foundation-model/anthropic.*\",
         \"arn:aws:bedrock:${REGION}:${ACCOUNT_ID}:inference-profile/*\"
       ]
+    }, {
+      \"Sid\": \"ReadTheModelCatalogue\",
+      \"Effect\": \"Allow\",
+      \"Action\": [
+        \"bedrock:ListFoundationModels\",
+        \"bedrock:ListInferenceProfiles\"
+      ],
+      \"Resource\": \"*\"
     }]
   }" >/dev/null
 
