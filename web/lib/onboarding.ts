@@ -8,7 +8,14 @@
  * genuinely needed.
  */
 
-export type StepKind = "date" | "choice" | "multi" | "place" | "contact";
+export type StepKind =
+  | "date"
+  | "birthdate"
+  | "choice"
+  | "multi"
+  | "place"
+  | "contact"
+  | "supporting";
 
 export interface Step {
   kind: StepKind;
@@ -20,9 +27,18 @@ export interface Step {
   noteFg: string;
   skip?: string;
   options?: { label: string; sub?: string }[];
+  /**
+   * For a "choice" step, which answer it writes.
+   *
+   * Its absence is what marks the contact-window step: that one is a clock and
+   * an "any time" toggle rather than a list, so it has options to render but
+   * no single answer field to bind to.
+   */
+  field?: "feeding" | "contactRelationship";
 }
 
-export const STEPS: Step[] = [
+/** Someone expecting. The original five. */
+export const EXPECTING_STEPS: Step[] = [
   {
     kind: "date",
     eyebrow: "Step one",
@@ -88,11 +104,145 @@ export const STEPS: Step[] = [
   },
 ];
 
+/** Someone who has given birth.
+ *
+ * Not the pregnancy flow with the due date swapped out. A due date is a
+ * prediction and a birth date is a fact, the useful help is different, and
+ * asking about trimesters after the event would be the clearest possible sign
+ * that nobody thought about this person. */
+export const POSTPARTUM_STEPS: Step[] = [
+  {
+    kind: "birthdate",
+    eyebrow: "Step one",
+    question: "When was your baby born?",
+    help: "This anchors everything else — where you are in your recovery, and which checks are coming up.",
+    why: "Nnneva asks once. Postnatal checks, vaccinations and reviews all fall at known points after the birth, so this one date is enough to keep track of them.",
+    noteBg: "#FDF1F5",
+    noteFg: "#0B2C22",
+  },
+  {
+    kind: "choice",
+    eyebrow: "Step two",
+    question: "How is feeding going?",
+    field: "feeding",
+    help: "So advice and reminders match what you are actually doing.",
+    why: "This changes what is worth reminding you about and what would be noise. It is never used to judge — there is no right answer here, and \u201cstill working it out\u201d is a real one.",
+    noteBg: "#E4F1EB",
+    noteFg: "#0B2C22",
+    skip: "I would rather not say",
+    options: [
+      { label: "Breastfeeding", sub: "Exclusively or mostly" },
+      { label: "Formula", sub: "Exclusively or mostly" },
+      { label: "Both", sub: "Mixed feeding" },
+      { label: "Still working it out", sub: "It is early days" },
+    ],
+  },
+  {
+    kind: "multi",
+    eyebrow: "Step three",
+    question: "What should Nnneva take off your hands?",
+    help: "Pick as many as you like. You can change this at any time.",
+    why: "This decides what Nnneva does on its own and what it leaves alone. Anything you do not pick here, it will not go near.",
+    noteBg: "#FDF1F5",
+    noteFg: "#0B2C22",
+    options: [
+      { label: "Your own recovery", sub: "Postnatal checks, bleeding, pain, mood" },
+      { label: "The baby's appointments", sub: "Weigh-ins, vaccinations, reviews" },
+      { label: "Feeding and sleep", sub: "Routines, night feeds, what to expect" },
+      { label: "Everyday errands", sub: "Prescriptions, transport, supplies" },
+    ],
+  },
+  {
+    kind: "contact",
+    eyebrow: "Step four",
+    question: "Is there someone helping you?",
+    help: "A partner, a family member, a friend. Optional, and they only ever see what you switch on.",
+    why: "Nothing reaches a trusted contact unless you approve it, and Nnneva asks every single time — not once at setup.",
+    noteBg: "#E4F1EB",
+    noteFg: "#0B2C22",
+    skip: "It is just me for now",
+    options: [],
+  },
+  {
+    kind: "choice",
+    eyebrow: "Step five",
+    question: "When should Nnneva reach you?",
+    help: "Nnneva only gets in touch when something needs a decision or a deadline is close.",
+    why: "Everything that is not urgent waits for the window you pick here. With a newborn, a reminder at the wrong hour is worse than no reminder at all.",
+    noteBg: "#FDF1F5",
+    noteFg: "#0B2C22",
+  },
+];
+
+/** Someone supporting another person.
+ *
+ * Three questions, because there are only three things Nnneva needs from
+ * them. They have no due date and no clinic — those belong to the person they
+ * are helping, and asking here would be asking them to answer for someone
+ * else. */
+export const SUPPORTER_STEPS: Step[] = [
+  {
+    kind: "supporting",
+    eyebrow: "Step one",
+    question: "Who are you supporting?",
+    help: "Their Nnneva username. They decide whether to accept, and what you can see.",
+    why: "Nothing is shared by you asking. They get a request, and until they accept it and switch something on, you see nothing at all.",
+    noteBg: "#FDF1F5",
+    noteFg: "#0B2C22",
+    skip: "They have not joined yet",
+  },
+  {
+    kind: "choice",
+    eyebrow: "Step two",
+    question: "What are you to them?",
+    field: "contactRelationship",
+    help: "So they know who is asking when the request arrives.",
+    why: "\u201cChidi wants to help as your partner\u201d is a clearer thing to accept than a name on its own.",
+    noteBg: "#E4F1EB",
+    noteFg: "#0B2C22",
+    options: [
+      { label: "Partner" },
+      { label: "Husband" },
+      { label: "Mother" },
+      { label: "Mother-in-law" },
+      { label: "Sister" },
+      { label: "Friend" },
+      { label: "Doula" },
+      { label: "Other family" },
+    ],
+  },
+  {
+    kind: "choice",
+    eyebrow: "Step three",
+    question: "When should Nnneva reach you?",
+    help: "Only when something has actually been asked of you.",
+    why: "You will hear from Nnneva when they hand you something to do, and not otherwise.",
+    noteBg: "#FDF1F5",
+    noteFg: "#0B2C22",
+  },
+];
+
+export type Role = "expecting" | "postpartum" | "supporter";
+
+export function stepsFor(role: Role | null): Step[] {
+  if (role === "postpartum") return POSTPARTUM_STEPS;
+  if (role === "supporter") return SUPPORTER_STEPS;
+  return EXPECTING_STEPS;
+}
+
 /**
- * The help areas, taken from the step that asks for them rather than repeated.
+ * The help areas, taken from the steps that ask for them rather than repeated.
  * The profile screen offers the same set, and a second hand-written list would
  * drift — a label edited in one place would silently stop matching what is
  * already stored against accounts set up through the other.
+ *
+ * Both flows contribute, because the profile screen has to be able to render
+ * whichever set an account was actually onboarded with.
  */
-export const HELP_AREAS: string[] =
-  STEPS.find((s) => s.kind === "multi")?.options?.map((o) => o.label) ?? [];
+export const HELP_AREAS: string[] = [
+  ...(EXPECTING_STEPS.find((s) => s.kind === "multi")?.options?.map((o) => o.label) ?? []),
+  ...(POSTPARTUM_STEPS.find((s) => s.kind === "multi")?.options?.map((o) => o.label) ?? []),
+];
+
+/** Kept so existing imports of the pregnancy flow keep meaning what they did. */
+export const STEPS = EXPECTING_STEPS;

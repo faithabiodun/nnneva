@@ -215,7 +215,16 @@ class PregnancyProfile(Base, TimestampMixin):
         ForeignKey("users.id", ondelete="CASCADE"), unique=True, index=True
     )
 
-    due_date: Mapped[date] = mapped_column(Date)
+    # Exactly one of these is set, decided by the account's role. Someone
+    # expecting has a due date and no birth date; someone postpartum has the
+    # reverse. Both nullable rather than two tables, because everything else
+    # here — where care happens, who provides it, what Nnneva may take on — is
+    # identical either side of the birth.
+    due_date: Mapped[date | None] = mapped_column(Date, default=None)
+    birth_date: Mapped[date | None] = mapped_column(Date, default=None)
+    # Postpartum only, and only because it changes what advice is relevant.
+    # Never used to judge anyone: "still working it out" is a first-class answer.
+    feeding: Mapped[str | None] = mapped_column(String(40), default=None)
     care_location: Mapped[str | None] = mapped_column(String(160), default=None)
     clinician: Mapped[str | None] = mapped_column(String(120), default=None)
     # What the user asked Nnneva to take on, one label per line. The agent acts
@@ -225,18 +234,32 @@ class PregnancyProfile(Base, TimestampMixin):
     user: Mapped[User] = relationship(back_populates="profile")
 
     @property
-    def gestational_week(self) -> int:
+    def gestational_week(self) -> int | None:
         """Weeks completed, derived from the due date rather than stored.
 
         A stored week is wrong the day after it is written; 40 weeks minus the
-        weeks remaining is always current.
+        weeks remaining is always current. None once there is no due date —
+        a postpartum profile is not at week zero, it is not in a pregnancy.
         """
+        if self.due_date is None:
+            return None
         days_to_go = (self.due_date - date.today()).days
         return max(0, min(42, 40 - (days_to_go // 7)))
 
     @property
-    def trimester(self) -> str:
+    def postnatal_week(self) -> int | None:
+        """Weeks since the birth, for a profile anchored on one."""
+        if self.birth_date is None:
+            return None
+        return max(0, (date.today() - self.birth_date).days // 7)
+
+    @property
+    def trimester(self) -> str | None:
+        """None once the pregnancy is over — there is no fourth trimester here,
+        and calling the postpartum weeks one would be a claim, not a fact."""
         week = self.gestational_week
+        if week is None:
+            return None
         if week < 13:
             return "first trimester"
         return "second trimester" if week < 28 else "third trimester"
@@ -294,6 +317,19 @@ class TrustedContact(Base, TimestampMixin):
     )
 
 
+class RequestKind(str, enum.Enum):
+    """Who is asking whom.
+
+    `for_help` is the mother asking someone to be her trusted contact.
+    `to_help` is a supporter offering — which arrives the other way round but
+    is just as safe, because either way it is the mother who accepts and the
+    contact row lands under her account with every permission off.
+    """
+
+    for_help = "For help"
+    to_help = "To help"
+
+
 class RequestStatus(str, enum.Enum):
     pending = "Pending"
     accepted = "Accepted"
@@ -325,6 +361,9 @@ class ContactRequest(Base, TimestampMixin):
     )
 
     relationship_label: Mapped[str] = mapped_column(String(60), default="Partner")
+    kind: Mapped[RequestKind] = mapped_column(
+        Enum(RequestKind, name="request_kind"), default=RequestKind.for_help
+    )
     status: Mapped[RequestStatus] = mapped_column(
         Enum(RequestStatus, name="request_status"), default=RequestStatus.pending
     )
@@ -597,6 +636,11 @@ class AgentRun(Base, TimestampMixin):
     # "bedrock" or "scripted" — the API reports which planner produced the run
     # so a reader is never misled about whether a model was involved.
     engine: Mapped[str] = mapped_column(String(20), default="scripted")
+    # Set when the run had to do something other than what was configured —
+    # today, only when every model provider failed and the deterministic
+    # planner answered instead. The UI shows it as a quiet note rather than an
+    # error, because the work still happened.
+    notice: Mapped[str | None] = mapped_column(String(200), default=None)
     safety_band: Mapped[SafetyBand] = mapped_column(Enum(SafetyBand), default=SafetyBand.none)
     duration_ms: Mapped[float | None] = mapped_column(Float, default=None)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)

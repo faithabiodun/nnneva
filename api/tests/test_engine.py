@@ -46,9 +46,16 @@ def test_auto_falls_back_when_the_model_cannot_be_reached(
     assert any(a["tool"] == "create_task" for a in run["actions"])
 
 
-def test_model_mode_reports_the_failure_instead_of_hiding_it(
+def test_a_failed_model_still_answers_and_says_why(
     client, signed_up, model_mode, monkeypatch
 ):
+    """An unreachable model is an operations problem, not the user's.
+
+    Turning it into a red error helps nobody: the deterministic planner drives
+    the same tools against the same database, so the work still happens. It is
+    not hidden either — the run says the planner answered, and carries a note
+    saying why.
+    """
     model_mode("model")
     monkeypatch.setattr(
         runner, "_run_model",
@@ -56,8 +63,24 @@ def test_model_mode_reports_the_failure_instead_of_hiding_it(
     )
 
     r = client.post("/agent/runs", headers=signed_up, json={"message": GOAL})
-    assert r.status_code == 502
-    assert "could not be reached" in r.json()["detail"]
+    assert r.status_code == 201
+    run = r.json()
+    assert run["engine"] == "scripted"
+    assert "built-in planner" in run["notice"]
+    # The work still got done, which is the whole point of falling back.
+    assert any(a["tool"] == "create_task" for a in run["actions"])
+
+
+def test_a_silent_fallback_carries_no_notice(client, signed_up, model_mode, monkeypatch):
+    """In auto mode nobody asked for a model, so there is nothing to apologise for."""
+    model_mode("auto")
+    monkeypatch.setattr(
+        runner, "_run_model",
+        lambda *a, **k: (_ for _ in ()).throw(RuntimeError("no credentials")),
+    )
+    run = client.post("/agent/runs", headers=signed_up, json={"message": GOAL}).json()
+    assert run["engine"] == "scripted"
+    assert run["notice"] is None
 
 
 def test_scripted_mode_never_calls_the_model(client, signed_up, model_mode, monkeypatch):

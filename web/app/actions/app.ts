@@ -23,10 +23,16 @@ import type {
 /* ---- Onboarding -------------------------------------------------------- */
 
 export type OnboardingAnswers = {
-  due_date: string;
+  /** Expecting only. */
+  due_date?: string;
+  /** Postpartum only. Never both. */
+  birth_date?: string;
+  feeding?: string | null;
+  /** Supporting someone only: their handle, which raises a request. */
+  supporting_username?: string | null;
   care_location?: string | null;
   clinician?: string | null;
-  help_areas: string[];
+  help_areas?: string[];
   contact_name?: string | null;
   contact_relationship?: string | null;
   contact_phone?: string | null;
@@ -34,7 +40,6 @@ export type OnboardingAnswers = {
   contact_can_see_shared_tasks?: boolean;
   contact_window?: string | null;
 };
-
 export async function completeOnboarding(answers: OnboardingAnswers): Promise<void> {
   await api.post<Profile>("/onboarding", answers);
   redirect("/home");

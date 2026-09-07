@@ -28,6 +28,12 @@ class Settings(BaseSettings):
     # regional inference profile, hence the "us." prefix. A bare
     # "anthropic.claude-..." id is accepted here and rejected at invoke time.
     bedrock_model_id: str = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+    # A cheaper, faster model tried when the one above does not answer —
+    # throttled, or simply not enabled on the account. It needs no extra
+    # credentials, which is what makes it useful: it is a working fallback
+    # today rather than one waiting on a key from somewhere else. Set it empty
+    # to run on a single Bedrock model.
+    bedrock_fallback_model_id: str = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
     # The second provider, tried when Bedrock fails. Empty disables it, which
     # is the default: nothing here calls OpenAI unless a key is supplied.

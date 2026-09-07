@@ -21,6 +21,7 @@ from app.deps import CurrentUser, DbSession
 from app.models import (
     ContactMessage,
     ContactRequest,
+    RequestKind,
     RequestStatus,
     Task,
     TaskStatus,
@@ -72,12 +73,20 @@ def search(user: CurrentUser, db: DbSession, q: str = Query(min_length=2, max_le
         .limit(SEARCH_LIMIT)
     ).all()
 
+    # Connected in either direction: someone helping this user, and someone
+    # this user helps. Both mean "already linked", so neither should offer a
+    # button that would be refused.
     linked = {
         c.linked_user_id
         for c in db.scalars(
             select(TrustedContact).where(
                 TrustedContact.user_id == user.id, TrustedContact.linked_user_id.is_not(None)
             )
+        ).all()
+    } | {
+        c.user_id
+        for c in db.scalars(
+            select(TrustedContact).where(TrustedContact.linked_user_id == user.id)
         ).all()
     }
     requests = db.scalars(
@@ -217,23 +226,31 @@ def _incoming(db: DbSession, request_id: str, user: User) -> ContactRequest:
 
 @router.post("/requests/{request_id}/accept", response_model=ContactRequestOut)
 def accept_request(request_id: str, user: CurrentUser, db: DbSession) -> ContactRequestOut:
-    """Become the requester's trusted contact.
+    """Say yes to a request, in whichever direction it arrived.
 
     Accepting grants nothing on its own. The contact row is created with every
-    permission off, exactly as a hand-added contact is, and she turns things on
+    permission off, exactly as a hand-added contact is, and it is turned on
     afterwards — so "accept" means "yes, you may ask me", not "yes, take it".
     """
     request = _incoming(db, request_id, user)
     request.status = RequestStatus.accepted
     request.responded_at = _now()
 
+    # Whose account the contact lands under depends on which way the request
+    # ran. Either way it is the person being helped who accepted, and either
+    # way the row starts with every permission off.
+    if request.kind is RequestKind.to_help:
+        cared_for, helper = user, request.requester
+    else:
+        cared_for, helper = request.requester, user
+
     db.add(
         TrustedContact(
-            user_id=request.requester_id,
-            linked_user_id=user.id,
-            name=user.full_name,
+            user_id=cared_for.id,
+            linked_user_id=helper.id,
+            name=helper.full_name,
             relationship_label=request.relationship_label,
-            email=user.email,
+            email=helper.email,
             accepted_at=_now(),
         )
     )

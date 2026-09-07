@@ -44,7 +44,21 @@ class TokenOut(BaseModel):
 
 
 class OnboardingIn(BaseModel):
-    due_date: date
+    """One shape for three flows.
+
+    Everything is optional here and required by the route instead, because
+    what is needed depends on the answer to the first-run question — and a
+    schema that demanded a due date would make the supporter flow impossible
+    to submit.
+    """
+
+    # Expecting.
+    due_date: date | None = None
+    # Postpartum.
+    birth_date: date | None = None
+    feeding: str | None = Field(default=None, max_length=40)
+    # Supporting someone: their handle, which raises a request they answer.
+    supporting_username: str | None = Field(default=None, max_length=30)
     care_location: str | None = None
     clinician: str | None = None
     help_areas: list[str] = []
@@ -172,6 +186,8 @@ class RunOut(BaseModel):
     reply: str
     status: str
     engine: str
+    # Set when the run had to fall back. A note for the reader, not an error.
+    notice: str | None = None
     safety_band: str
     created_at: datetime
     duration_ms: float | None
@@ -203,6 +219,10 @@ class ProfileOut(BaseModel):
     due_date: date | None
     gestational_week: int | None
     trimester: str | None
+    # The postpartum side of the same profile. Never both.
+    birth_date: date | None
+    postnatal_week: int | None
+    feeding: str | None
     care_location: str | None
     clinician: str | None
     help_areas: list[str]

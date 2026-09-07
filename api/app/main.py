@@ -13,6 +13,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.agent.models import describe
 from app.config import get_settings
 from app.routers import (
     activity,
@@ -75,4 +76,6 @@ def health() -> dict[str, object]:
         "falls_back_to_scripted": not current.model_required,
         "bedrock_model": current.bedrock_model_id if current.use_bedrock_model else None,
         "openai_model": current.openai_model if current.use_openai_model else None,
+        # Every candidate, in the order the router would try them.
+        "models": describe(current),
     }

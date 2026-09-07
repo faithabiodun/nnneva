@@ -101,8 +101,11 @@ export type AgentRun = {
   prompt: string;
   reply: string;
   status: RunStatus;
-  /** Which planner produced this run. Never inferred — the server records it. */
-  engine: "bedrock" | "scripted";
+  /** Which planner produced this run. Never inferred — the server records it.
+   *  With two providers configured it names both, e.g. "bedrock+openai". */
+  engine: string;
+  /** Set when the run had to fall back. A footnote for the reader, not an error. */
+  notice: string | null;
   safety_band: SafetyBand;
   created_at: string;
   duration_ms: number | null;

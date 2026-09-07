@@ -63,7 +63,7 @@ export function HomeAgent({ onboarded }: { onboarded: boolean }) {
       try {
         setRun(await askNnneva(goal));
       } catch {
-        setError("Nnneva could not finish that just now. Please try again.");
+        setError("That did not send. Check your connection and try again.");
       }
     });
   };

@@ -88,12 +88,31 @@ def test_one_provider_is_returned_bare():
     assert type(model).__name__ == "OpenAIModel"
 
 
-def test_two_providers_become_a_router_with_bedrock_first():
+def test_the_candidates_are_tried_cheapest_last_within_bedrock():
     s = settings(agent_engine="model", openai_api_key="sk-test")
     model = build_model(s)
     assert type(model).__name__ == "ModelRouter"
-    assert [c.name for c in model.candidates] == ["bedrock", "openai"]
+    assert [c.name for c in model.candidates] == ["bedrock", "bedrock-cheap", "openai"]
     assert engine_label(s) == "bedrock+openai"
+
+
+def test_the_cheap_bedrock_fallback_needs_no_extra_credentials():
+    """It is the one fallback that works without waiting on a key from
+    elsewhere, which is the whole reason it is there."""
+    s = settings(agent_engine="model")
+    model = build_model(s)
+    assert [c.name for c in model.candidates] == ["bedrock", "bedrock-cheap"]
+
+
+def test_the_cheap_fallback_can_be_switched_off():
+    s = settings(agent_engine="model", bedrock_fallback_model_id="")
+    assert type(build_model(s)).__name__ == "BedrockModel"
+
+
+def test_a_fallback_equal_to_the_primary_is_not_listed_twice():
+    s = settings(agent_engine="model",
+                 bedrock_model_id="same", bedrock_fallback_model_id="same")
+    assert type(build_model(s)).__name__ == "BedrockModel"
 
 
 def test_the_openai_model_id_is_configurable():

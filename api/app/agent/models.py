@@ -25,6 +25,10 @@ log = logging.getLogger("nnneva.agent")
 # accepted by the SDK and then rejected at invoke time, which is how this was
 # broken for so long: the failure looked like a network problem, not a typo.
 DEFAULT_BEDROCK_MODEL = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+# Cheaper and faster, and reachable on the same credentials — so an account
+# that cannot serve the model above still gets a real answer rather than the
+# scripted planner.
+DEFAULT_BEDROCK_FALLBACK_MODEL = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 DEFAULT_OPENAI_MODEL = "gpt-5.3-mini"
 
 MAX_TOKENS = 2048
@@ -46,17 +50,23 @@ def build_model(settings):
     if settings.use_bedrock_model:
         from strands.models import BedrockModel
 
-        candidates.append(
-            (
-                "bedrock",
-                BedrockModel(
-                    model_id=settings.bedrock_model_id or DEFAULT_BEDROCK_MODEL,
-                    region_name=settings.aws_region,
-                    max_tokens=MAX_TOKENS,
-                    temperature=TEMPERATURE,
-                ),
+        def bedrock(model_id: str) -> "BedrockModel":
+            return BedrockModel(
+                model_id=model_id,
+                region_name=settings.aws_region,
+                max_tokens=MAX_TOKENS,
+                temperature=TEMPERATURE,
             )
-        )
+
+        primary = settings.bedrock_model_id or DEFAULT_BEDROCK_MODEL
+        candidates.append(("bedrock", bedrock(primary)))
+
+        # Two Bedrock candidates are worth having even though they share
+        # credentials: the failures they cover are per-model, not per-account
+        # — a throttle, or a model the account has not been granted.
+        cheaper = getattr(settings, "bedrock_fallback_model_id", "") or ""
+        if cheaper and cheaper != primary:
+            candidates.append(("bedrock-cheap", bedrock(cheaper)))
 
     if settings.use_openai_model:
         from strands.models.openai import OpenAIModel
@@ -103,3 +113,17 @@ def engine_label(settings) -> str:
     if settings.use_openai_model:
         names.append("openai")
     return "+".join(names) or "scripted"
+
+
+def describe(settings) -> list[str]:
+    """The candidates in the order they would be tried, for /health."""
+    out = []
+    if settings.use_bedrock_model:
+        primary = settings.bedrock_model_id or DEFAULT_BEDROCK_MODEL
+        out.append(primary)
+        cheaper = getattr(settings, "bedrock_fallback_model_id", "") or ""
+        if cheaper and cheaper != primary:
+            out.append(cheaper)
+    if settings.use_openai_model:
+        out.append(settings.openai_model or DEFAULT_OPENAI_MODEL)
+    return out

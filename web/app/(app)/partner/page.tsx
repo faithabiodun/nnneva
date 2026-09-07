@@ -3,7 +3,7 @@ import {
   listContacts,
   listRequests,
 } from "@/app/actions/app";
-import { api } from "@/lib/api";
+import { api, orFallback } from "@/lib/api";
 import type { Task } from "@/lib/types";
 import { PartnerView } from "@/components/app/views/PartnerView";
 
@@ -18,7 +18,13 @@ export default async function PartnerPage({ searchParams }: PageProps<"/partner"
   const { c } = await searchParams;
   const wanted = typeof c === "string" ? c : null;
 
-  const [contacts, requests] = await Promise.all([listContacts(), listRequests()]);
+  // Each read falls back rather than throwing. Someone opening this screen
+  // wants to reach a person; an empty list they can act on beats an error page
+  // that tells them nothing and offers nothing.
+  const [contacts, requests] = await Promise.all([
+    orFallback(listContacts, []),
+    orFallback(listRequests, { incoming: [], outgoing: [] }),
+  ]);
   const open = contacts.find((x) => x.id === wanted) ?? null;
 
   if (!open) {
@@ -28,8 +34,8 @@ export default async function PartnerPage({ searchParams }: PageProps<"/partner"
   }
 
   const [messages, tasks] = await Promise.all([
-    listContactMessages(open.id),
-    api.get<Task[]>("/tasks"),
+    orFallback(() => listContactMessages(open.id), []),
+    orFallback(() => api.get<Task[]>("/tasks"), []),
   ]);
 
   return (

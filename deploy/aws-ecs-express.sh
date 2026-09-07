@@ -30,6 +30,10 @@ TAG="${IMAGE_TAG:-latest}"
 # "anthropic.claude-..." id is accepted by the SDK and rejected at invoke time.
 MODEL_ID="${BEDROCK_MODEL_ID:-us.anthropic.claude-sonnet-4-5-20250929-v1:0}"
 # The second provider. Empty leaves the service on Bedrock alone.
+# A cheaper Bedrock model tried when the one above does not answer. Same
+# credentials, so it needs nothing new — which is what makes it the fallback
+# that actually works today.
+FALLBACK_MODEL_ID="${BEDROCK_FALLBACK_MODEL_ID:-us.anthropic.claude-haiku-4-5-20251001-v1:0}"
 OPENAI_KEY="${OPENAI_API_KEY:-}"
 OPENAI_MODEL_ID="${OPENAI_MODEL:-gpt-5.3-mini}"
 LOG_GROUP="/ecs/${SERVICE_NAME}"
@@ -166,12 +170,14 @@ printf '  logs %s\n' "$LOG_GROUP"
 
 CONTAINER=$(DB="$DATABASE_URL" SK="$SECRET_KEY" WO="$WEB_ORIGIN" \
   SBURL="${SUPABASE_URL:-}" OAIKEY="$OPENAI_KEY" OAIMODEL="$OPENAI_MODEL_ID" \
-  IMG="$IMAGE" LG="$LOG_GROUP" MODEL="$MODEL_ID" RG="$REGION" python3 - <<'PY'
+  IMG="$IMAGE" LG="$LOG_GROUP" MODEL="$MODEL_ID" FALLBACK="$FALLBACK_MODEL_ID" \
+  RG="$REGION" python3 - <<'PY'
 import json, os
 
 environment = [
     {"name": "AGENT_ENGINE",      "value": "model"},
     {"name": "BEDROCK_MODEL_ID",  "value": os.environ["MODEL"]},
+    {"name": "BEDROCK_FALLBACK_MODEL_ID", "value": os.environ["FALLBACK"]},
     {"name": "AWS_REGION",        "value": os.environ["RG"]},
     {"name": "WEB_ORIGIN",        "value": os.environ["WO"]},
     {"name": "DATABASE_URL",      "value": os.environ["DB"]},

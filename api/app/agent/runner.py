@@ -118,14 +118,24 @@ def run_agent(
             savepoint.commit()
         except Exception as exc:  # noqa: BLE001 — every provider failure lands here
             savepoint.rollback()
-            if settings.model_required:
-                # Explicitly configured to require a model: say so rather than
-                # quietly serving rules that look like one.
-                log.exception("Every model provider failed and AGENT_ENGINE requires one")
-                raise ModelUnavailable(str(exc)) from exc
-            log.warning("No model provider answered (%s); using the scripted planner", exc)
+            # Never a dead end. An unreachable model is an operations problem,
+            # and turning it into a red error on someone's screen helps nobody
+            # — the deterministic planner drives the same tools against the
+            # same database, so the work still happens.
+            #
+            # It is not hidden either: the run records that the planner
+            # answered, `notice` says why, the exception is logged, and
+            # /health still reports what was configured. Loud in the logs,
+            # quiet on the screen.
+            log.exception("No model provider answered; using the scripted planner")
             _reset_after_failed_engine(box)
             reply = scripted.run(box, message, screening)
+            run.engine = "scripted"
+            if settings.model_required:
+                run.notice = (
+                    "Nnneva's model could not be reached, so this reply came from "
+                    "its built-in planner. Your tasks and reminders were still saved."
+                )
     else:
         reply = scripted.run(box, message, screening)
 

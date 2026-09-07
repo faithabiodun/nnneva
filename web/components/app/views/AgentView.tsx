@@ -72,7 +72,7 @@ export function AgentView({
       try {
         setRun(await askNnneva(text));
       } catch {
-        setError("Nnneva could not finish that. Please try again.");
+        setError("That did not send. Check your connection and try again.");
       }
     });
   };
@@ -307,9 +307,17 @@ function Transcript({
               </p>
             </div>
           ) : (
-            <p className="max-w-[76%] rounded-[18px] rounded-bl-[6px] bg-surface px-4.5 py-3.5 text-body whitespace-pre-line text-ink-2">
-              {run.reply}
-            </p>
+            <div className="max-w-[76%]">
+              <p className="rounded-[18px] rounded-bl-[6px] bg-surface px-4.5 py-3.5 text-body whitespace-pre-line text-ink-2">
+                {run.reply}
+              </p>
+              {/* A run that had to fall back says so here rather than as an
+                  error: the reply is real and the work was done, so this is a
+                  footnote, not a failure. */}
+              {run.notice && (
+                <p className="mt-1.5 px-1 text-caption text-faint">{run.notice}</p>
+              )}
+            </div>
           )}
         </div>
       )}

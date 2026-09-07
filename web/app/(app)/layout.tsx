@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 
 import { SetupPrompt } from "@/components/app/SetupPrompt";
 import { ShellProvider } from "@/components/app/ShellContext";
-import { api } from "@/lib/api";
+import { api, orFallback } from "@/lib/api";
 import type { Approval, Profile } from "@/lib/types";
 
 /**
@@ -10,9 +10,12 @@ import type { Approval, Profile } from "@/lib/types";
  * sidebar shows the same person and the same pending count on every screen.
  */
 export default async function AppLayout({ children }: LayoutProps<"/">) {
+  // The profile is not optional: it decides whether this person should be
+  // here at all. The pending count is — a sidebar badge is not worth taking
+  // the whole signed-in app down for.
   const [profile, approvals] = await Promise.all([
     api.get<Profile>("/profile"),
-    api.get<Approval[]>("/approvals"),
+    orFallback(() => api.get<Approval[]>("/approvals"), [] as Approval[]),
   ]);
 
   // No role means the first-run step has not been answered, and everything
