@@ -26,16 +26,17 @@ log = logging.getLogger("nnneva.agent")
 # so the id carries a region prefix. A bare `anthropic.claude-...` id is
 # accepted by the SDK and then rejected at invoke time, which is how this was
 # broken for so long: the failure looked like a network problem, not a typo.
-# Haiku: the cheapest and fastest of the family, and quite enough for work
-# that is mostly reading a short profile and calling a tool.
+# Both verified against a real account with a Converse call carrying the
+# system prompt and the tool schemas — not picked from a catalogue listing,
+# which lists plenty this account cannot invoke.
 #
-# The exact string is a starting point, not a promise. Which ids an account
-# can invoke differs between accounts, so bedrock_catalog.resolve asks Bedrock
-# and swaps this for whatever Haiku it actually offers.
-DEFAULT_BEDROCK_MODEL = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
-# Behind it, on the same credentials, for the failures that are per-model
-# rather than per-account: a throttle, or a model never granted.
-DEFAULT_BEDROCK_FALLBACK_MODEL = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+# gpt-oss is served on demand, so it needs no inference profile, and it read
+# "tomorrow" correctly where the MiniMax models were a year or more out. On an
+# app that schedules antenatal appointments that is not a detail.
+DEFAULT_BEDROCK_MODEL = "openai.gpt-oss-120b-1:0"
+# Behind it, also verified, for the failures that are per-model rather than
+# per-account: a throttle, or a model never granted.
+DEFAULT_BEDROCK_FALLBACK_MODEL = "minimax.minimax-m2.5"
 DEFAULT_OPENAI_MODEL = "gpt-5.3-mini"
 # An alias DeepSeek keeps pointed at its current model, rather than a version
 # string that goes stale and then fails at call time.

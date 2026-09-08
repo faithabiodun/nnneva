@@ -25,21 +25,20 @@ SERVICE_NAME="${SERVICE_NAME:-nnneva-api}"
 CLUSTER="${CLUSTER:-nnneva}"
 REPO="${ECR_REPO:-nnneva-api}"
 TAG="${IMAGE_TAG:-latest}"
-# Haiku: the cheapest and fastest of the family, and quite enough for work
-# that is mostly reading a short profile and calling a tool.
+# Both verified against the account with a real Converse call carrying the
+# system prompt and the tool schemas. Listing a model proves nothing: this
+# account lists openai.gpt-5.6-luna and Claude Haiku, and can invoke neither.
 #
-# On-demand Anthropic models are only reachable through a regional inference
-# profile, so the id carries the "us." prefix — a bare "anthropic.claude-..."
-# id is accepted by the SDK and rejected at invoke time.
+# gpt-oss is served on demand, so no inference profile is needed.
 #
-# The exact string is a starting point. The container asks Bedrock which ids
-# this account can actually invoke and swaps in the Haiku it really has, which
-# is what the list permission above is for.
-MODEL_ID="${BEDROCK_MODEL_ID:-us.anthropic.claude-haiku-4-5-20251001-v1:0}"
+# To move to Claude later, submit the Bedrock model use-case form, then set
+# BEDROCK_MODEL_ID=us.anthropic.claude-haiku-4-5-20251001-v1:0 — that profile
+# is already ACTIVE, only the entitlement is missing.
+MODEL_ID="${BEDROCK_MODEL_ID:-openai.gpt-oss-120b-1:0}"
 # The second provider. Empty leaves the service on Bedrock alone.
 # Behind it on the same credentials, for the failures that are per-model
 # rather than per-account: a throttle, or a model never granted.
-FALLBACK_MODEL_ID="${BEDROCK_FALLBACK_MODEL_ID:-us.anthropic.claude-sonnet-4-5-20250929-v1:0}"
+FALLBACK_MODEL_ID="${BEDROCK_FALLBACK_MODEL_ID:-minimax.minimax-m2.5}"
 OPENAI_KEY="${OPENAI_API_KEY:-}"
 OPENAI_MODEL_ID="${OPENAI_MODEL:-gpt-5.3-mini}"
 # A Bedrock API key, if you use one instead of the task role. botocore reads

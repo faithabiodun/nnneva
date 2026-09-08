@@ -6,8 +6,15 @@ profile whose id is prefixed again, and which of them an account is granted
 differs between accounts. Getting it wrong does not fail at startup — it
 fails at invoke time, with a message that reads like a network problem.
 
-So this asks. The account is listed once, the answer is cached for the life
-of the process, and the configured id is matched against what came back:
+So this asks. But note carefully what the answer means: with
+`enableAccessToAllModelsByDefault` set, ListFoundationModels returns the whole
+Bedrock catalogue, including models the account cannot actually invoke. Being
+listed is not being entitled — `openai.gpt-5.6-luna` appears in the listing and
+returns "not available for this account" from Converse.
+
+So this narrows a wrong id, it does not certify a right one. Only a real call
+does that. The account is listed once, the answer is cached for the life of
+the process, and the configured id is matched against what came back:
 
   - exactly present  → use it, nothing to decide
   - absent, but the same family is there → use that instead, and say so
@@ -102,14 +109,16 @@ def catalogue(region: str, *, discover: bool = True) -> tuple[str, ...]:
     except Exception as exc:  # noqa: BLE001 — no boto3, no credentials, no network
         log.info("Bedrock catalogue unavailable: %s", exc)
 
-    anthropic = tuple(m for m in found if "anthropic" in m.lower())
-    if anthropic:
-        log.info("Bedrock offers %d Anthropic ids in %s", len(anthropic), region)
-        _CATALOGUE[region] = anthropic
+    # Every vendor, not just Anthropic: the model is a setting, and this
+    # account's working models are an OpenAI one and a MiniMax one.
+    ids = tuple(dict.fromkeys(found))
+    if ids:
+        log.info("Bedrock lists %d model ids in %s", len(ids), region)
+        _CATALOGUE[region] = ids
         _FAILED_AT.pop(region, None)
     else:
         _FAILED_AT[region] = time.monotonic()
-    return anthropic
+    return ids
 
 
 def resolve(

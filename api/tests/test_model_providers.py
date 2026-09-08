@@ -28,14 +28,15 @@ def settings(**over) -> Settings:
 # ---- Bedrock's model id ----------------------------------------------------
 
 
-def test_the_default_bedrock_id_is_a_haiku_inference_profile():
+def test_the_default_bedrock_id_is_one_verified_against_a_real_account():
     """A bare anthropic.* id is accepted by the SDK and rejected at invoke time.
 
     That is what made this look like an outage rather than a typo, so the
     shape of the default is worth pinning.
     """
-    assert DEFAULT_BEDROCK_MODEL.startswith("us.anthropic.")
-    assert "haiku" in DEFAULT_BEDROCK_MODEL, "Haiku is the model this runs on"
+    # Chosen by making a Converse call with tool use, not by reading a
+    # catalogue listing — which lists models the account cannot invoke.
+    assert DEFAULT_BEDROCK_MODEL == "openai.gpt-oss-120b-1:0"
     assert Settings.model_fields["bedrock_model_id"].default == DEFAULT_BEDROCK_MODEL
 
 

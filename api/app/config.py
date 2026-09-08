@@ -32,15 +32,19 @@ class Settings(BaseSettings):
     # It is account-wide, not per-model: what it can invoke is decided by the
     # permissions of the identity it was minted for, not by the key.
     aws_bearer_token_bedrock: str = ""
-    # On-demand Anthropic models on Bedrock are reachable only through a
-    # regional inference profile, hence the "us." prefix. A bare
-    # "anthropic.claude-..." id is accepted here and rejected at invoke time.
-    bedrock_model_id: str = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+    # Both verified against a real account with a Converse call, including
+    # tool use — not chosen from a catalogue listing, which proves nothing.
+    #
+    # gpt-oss is served on demand, so it needs no inference profile. Anthropic
+    # models on this account return "Model use case details have not been
+    # submitted"; once that form is filled in, us.anthropic.claude-haiku-4-5-
+    # 20251001-v1:0 becomes available and is the cheaper choice.
+    bedrock_model_id: str = "openai.gpt-oss-120b-1:0"
     # Tried when the one above does not answer — throttled, or not enabled on
     # the account. It needs no extra credentials, which is what makes it
     # useful: a fallback that works today rather than one waiting on a key
     # from somewhere else. Set it empty to run on a single Bedrock model.
-    bedrock_fallback_model_id: str = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+    bedrock_fallback_model_id: str = "minimax.minimax-m2.5"
     # Ask Bedrock which ids this account can actually invoke, and swap the
     # ones above for the matching model it really has. Off means the
     # configured strings are used exactly as written.

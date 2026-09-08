@@ -153,9 +153,11 @@ def test_active_profiles_and_on_demand_models_are_collected(bedrock):
     )
     found = catalog.catalogue("us-east-1")
     assert HAIKU in found and OLD_HAIKU in found and BARE_HAIKU in found
-    # Provisioned-only is not invocable on demand; a non-Anthropic id is not ours.
+    # Provisioned-only is not invocable on demand.
     assert "anthropic.claude-x" not in found
-    assert "meta.llama3" not in found
+    # Other vendors are kept: the model is a setting, and this account's
+    # working models are an OpenAI one and a MiniMax one.
+    assert "meta.llama3" in found
 
 
 def test_a_draining_profile_is_not_offered(bedrock):
