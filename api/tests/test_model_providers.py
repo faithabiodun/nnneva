@@ -206,3 +206,31 @@ def test_health_lists_them_in_the_configured_order():
     s = settings(agent_engine="model", deepseek_api_key="sk-test",
                  model_priority="deepseek,bedrock")
     assert describe(s)[0] == "deepseek-chat"
+
+
+# ---- A Bedrock API key -----------------------------------------------------
+#
+# botocore signs with AWS_BEARER_TOKEN_BEDROCK when it is set, so the app never
+# handles the token itself. All it has to do is notice one is there, or `auto`
+# mode decides there are no credentials and quietly serves the scripted
+# planner — the exact silent failure this file exists to prevent.
+
+
+def test_a_bedrock_api_key_counts_as_credentials():
+    s = settings(agent_engine="auto", aws_bearer_token_bedrock="bedrock-api-key")
+    assert s.has_aws_credentials is True
+    assert s.use_bedrock_model is True
+
+
+def test_access_keys_still_count_on_their_own():
+    s = settings(agent_engine="auto", aws_access_key_id="AKIA", aws_secret_access_key="secret")
+    assert s.has_aws_credentials is True
+
+
+def test_neither_means_auto_stays_on_the_scripted_planner():
+    assert settings(agent_engine="auto").use_bedrock_model is False
+
+
+def test_a_half_pair_of_keys_is_not_credentials():
+    s = settings(agent_engine="auto", aws_access_key_id="AKIA")
+    assert s.has_aws_credentials is False

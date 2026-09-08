@@ -24,6 +24,14 @@ class Settings(BaseSettings):
     aws_region: str = "us-east-1"
     aws_access_key_id: str = ""
     aws_secret_access_key: str = ""
+    # A Bedrock API key, as generated in the Bedrock console. botocore reads
+    # this env var itself and signs with it instead of SigV4, so nothing here
+    # passes it anywhere — it only needs to be *noticed*, so that `auto` mode
+    # knows Bedrock is worth attempting.
+    #
+    # It is account-wide, not per-model: what it can invoke is decided by the
+    # permissions of the identity it was minted for, not by the key.
+    aws_bearer_token_bedrock: str = ""
     # On-demand Anthropic models on Bedrock are reachable only through a
     # regional inference profile, hence the "us." prefix. A bare
     # "anthropic.claude-..." id is accepted here and rejected at invoke time.
@@ -85,20 +93,25 @@ class Settings(BaseSettings):
 
     @property
     def has_aws_credentials(self) -> bool:
-        """Whether explicit AWS access keys were supplied to the process.
+        """Whether something usable for Bedrock was handed to this process.
 
-        Presence is not reachability — keys can be present and still be
-        rejected by Bedrock — so this only decides whether it is worth trying.
+        Either a pair of access keys or a Bedrock API key: botocore accepts
+        the bearer token in place of SigV4 signing, so a deployment carrying
+        only that one is as ready to call Bedrock as one carrying keys.
+
+        Presence is not reachability — either can be present and still be
+        rejected — so this only decides whether it is worth trying.
 
         It deliberately does not consult boto3's wider credential chain. That
         means a deployment whose credentials come from an IAM role rather than
         keys (App Runner, ECS, EC2) reads as "no credentials" here, so
-        AGENT_ENGINE must be set to "bedrock" explicitly there. deploy/
-        aws-apprunner.sh does exactly that. Probing the chain instead would
-        make startup wait on an instance-metadata timeout on every machine
-        that has no credentials at all, including developer laptops and CI.
+        AGENT_ENGINE must be set explicitly there, which the deploy script
+        does. Probing the chain instead would make startup wait on an
+        instance-metadata timeout on every machine that has none at all,
+        including developer laptops and CI.
         """
-        return bool(self.aws_access_key_id and self.aws_secret_access_key)
+        keys = bool(self.aws_access_key_id and self.aws_secret_access_key)
+        return keys or bool(self.aws_bearer_token_bedrock)
 
     @property
     def has_openai_key(self) -> bool:

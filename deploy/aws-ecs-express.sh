@@ -42,6 +42,12 @@ MODEL_ID="${BEDROCK_MODEL_ID:-us.anthropic.claude-haiku-4-5-20251001-v1:0}"
 FALLBACK_MODEL_ID="${BEDROCK_FALLBACK_MODEL_ID:-us.anthropic.claude-sonnet-4-5-20250929-v1:0}"
 OPENAI_KEY="${OPENAI_API_KEY:-}"
 OPENAI_MODEL_ID="${OPENAI_MODEL:-gpt-5.3-mini}"
+# A Bedrock API key, if you use one instead of the task role. botocore reads
+# this itself and signs with it in place of SigV4. Empty means the task role
+# is used, which is the better default: a role rotates itself and a key does
+# not.
+BEDROCK_API_KEY="${AWS_BEARER_TOKEN_BEDROCK:-}"
+
 # DeepSeek, through its OpenAI-compatible endpoint. Empty leaves it off.
 DEEPSEEK_KEY="${DEEPSEEK_API_KEY:-}"
 DEEPSEEK_MODEL_ID="${DEEPSEEK_MODEL:-deepseek-chat}"
@@ -118,7 +124,15 @@ aws iam attach-role-policy --role-name "$EXEC_ROLE" \
 
 ensure_role "$TASK_ROLE" "ecs-tasks.amazonaws.com" \
   "What the running Nnneva container may do: invoke Bedrock"
-# The foundation-model ARN is deliberately region-wildcarded.
+# The foundation model is wildcarded by vendor as well as by region.
+#
+# By vendor because BEDROCK_MODEL_ID is a setting: naming anthropic.* here
+# means the day someone points it at MiniMax, Llama or Mistral they get
+# AccessDenied from a policy nobody thought to look at. The account still
+# decides what may be invoked — a model has to be granted in Bedrock's model
+# access page before this policy is even consulted.
+#
+# The region is wildcarded for a different reason.
 #
 # A "us." model id is a cross-region inference profile: Bedrock accepts the
 # call in this region and may route it to any region the profile covers
@@ -137,8 +151,9 @@ aws iam put-role-policy --role-name "$TASK_ROLE" --policy-name bedrock-invoke \
       \"Effect\": \"Allow\",
       \"Action\": [\"bedrock:InvokeModel\", \"bedrock:InvokeModelWithResponseStream\"],
       \"Resource\": [
-        \"arn:aws:bedrock:*::foundation-model/anthropic.*\",
-        \"arn:aws:bedrock:${REGION}:${ACCOUNT_ID}:inference-profile/*\"
+        \"arn:aws:bedrock:*::foundation-model/*\",
+        \"arn:aws:bedrock:${REGION}:${ACCOUNT_ID}:inference-profile/*\",
+        \"arn:aws:bedrock:${REGION}:${ACCOUNT_ID}:application-inference-profile/*\"
       ]
     }, {
       \"Sid\": \"ReadTheModelCatalogue\",
@@ -191,6 +206,7 @@ printf '  logs %s\n' "$LOG_GROUP"
 CONTAINER=$(DB="$DATABASE_URL" SK="$SECRET_KEY" WO="$WEB_ORIGIN" \
   SBURL="${SUPABASE_URL:-}" OAIKEY="$OPENAI_KEY" OAIMODEL="$OPENAI_MODEL_ID" \
   DSKEY="$DEEPSEEK_KEY" DSMODEL="$DEEPSEEK_MODEL_ID" PRIORITY="$PRIORITY" \
+  BRKEY="$BEDROCK_API_KEY" \
   IMG="$IMAGE" LG="$LOG_GROUP" MODEL="$MODEL_ID" FALLBACK="$FALLBACK_MODEL_ID" \
   RG="$REGION" python3 - <<'PY'
 import json, os
@@ -217,6 +233,12 @@ if os.environ.get("SBURL"):
 if os.environ.get("OAIKEY"):
     environment.append({"name": "OPENAI_API_KEY", "value": os.environ["OAIKEY"]})
     environment.append({"name": "OPENAI_MODEL", "value": os.environ["OAIMODEL"]})
+
+# A Bedrock API key, when one is supplied instead of relying on the task role.
+if os.environ.get("BRKEY"):
+    environment.append(
+        {"name": "AWS_BEARER_TOKEN_BEDROCK", "value": os.environ["BRKEY"]}
+    )
 
 # DeepSeek likewise. Note this is the one provider that sends a pregnancy's
 # details outside this AWS account, so it is only on when a key is passed in.
